@@ -10,18 +10,20 @@ const {width:SCREEN_WIDTH} = Dimensions.get("window");
 const serviceKey = 'DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D';
 
 // 현재 시각에서 1시간 빼주기 위한 함수
-var modifyTime = function(hours)
+var modifyTime = function(hours,day)
 {
   if (hours == '00')
   {
     hours = '23';
+    var now = new Date();
+    day = now.getDate(now.setDate(now.getDate()-1)).toString().padStart(2,'0'); // 어제 날짜
   }
   else
   {
     hours = parseInt(hours)-1;
     hours=hours.toString().padStart(2,'0');
   }
-  return hours;
+  return [hours,day];
 }
 
 // 위도, 경도 -> x,y 좌표
@@ -93,7 +95,6 @@ function dfs_xy_conv(code, v1, v2) {
 
 // 현재 시간의 날씨 예보를 위한 함수
 function extractWeather(json){
-
   const items = json.response.body.items.item;
   const currentTime=items[0]["fcstTime"]; // 현재 시간(hour)
   // console.log(currentTime);
@@ -167,13 +168,15 @@ function commentWeather(weatherDict){
       commentDict.rainOrsnow="눈날림";
       break;
   }   
-  return commentDict;
+  return commentDict; 
 }
 
 export default function App() {
   const [city, setCity]=useState("Loading...");
   const [subregion, setSubregion]=useState("Loading...");
   const [district, setDistrict]=useState();
+  const [TEMP, setTemp]=useState();
+  const [SKY, setSky]=useState();
   
   // const [location, setLocation] = useState();
   // const [days, setDays]=useState([]);
@@ -201,11 +204,13 @@ export default function App() {
     const currentDate = new Date();
     const year = currentDate.getFullYear();
     const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-    const day = currentDate.getDate().toString().padStart(2, '0');
+    var day = currentDate.getDate().toString().padStart(2, '0');
     var hours = currentDate.getHours().toString().padStart(2, '0');
     var minutes = currentDate.getMinutes().toString().padStart(2, '0');
 
-    hours = modifyTime(hours);
+    const modifiedTime = modifyTime(hours,day);
+    hours=modifiedTime[0];
+    day=modifiedTime[1];
 
     const base_date = `${year}${month}${day}`;
     const base_time = `${hours}${minutes}`;
@@ -222,6 +227,10 @@ export default function App() {
     const json = await response.json(); // 응답을 JSON 형태로 파싱
     weatherInfo=extractWeather(json);
     console.log(commentWeather(weatherInfo));
+    // JSON.stringify() : 객체를 직접적으로 React 자식 요소로 사용할 수 없기 때문에 객체를 문자열로 변환
+    // .replace(/\"/gi, "") : 따옴표 제거
+    setTemp(JSON.stringify(commentWeather(weatherInfo).temperature).replace(/\"/gi, ""));
+    setSky(JSON.stringify(commentWeather(weatherInfo).sky).replace(/\"/gi, "")); 
   };
 
   useEffect(() => {
@@ -242,8 +251,8 @@ export default function App() {
         contentContainerStyle={styles.weather}
       >
         <View style={styles.day}>
-          <Text style={styles.temp}>27</Text>
-          <Text style={styles.description}>Sunny</Text>
+          <Text style={styles.temp}>{TEMP}</Text>
+          <Text style={styles.description}>{SKY}</Text>
         </View>
         <View style={styles.day}>
           <Text style={styles.temp}>27</Text>
@@ -297,7 +306,7 @@ const styles = StyleSheet.create({
   },
   temp:{
     marginTop:30,
-    fontSize:158,
+    fontSize:100,
   },
   description:{
     fontSize:70,
