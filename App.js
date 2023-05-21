@@ -9,61 +9,131 @@ const {width:SCREEN_WIDTH} = Dimensions.get("window");
 // api key
 const serviceKey = 'DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D';
 
-// 위도, 경도 -> x, y 좌표 
-const NX = 149;            // X축 격자점 수
-const NY = 253;            // Y축 격자점 수
-
-const Re = 6371.00877;     //  지도반경
-const grid = 5.0;          //  격자간격 (km)
-const slat1 = 30.0;        //  표준위도 1
-const slat2 = 60.0;        //  표준위도 2
-const olon = 126.0;        //  기준점 경도
-const olat = 38.0;         //  기준점 위도
-const xo = 210 / grid;     //  기준점 X좌표
-const yo = 675 / grid;     //  기준점 Y좌표
-let first = 0;
-
-let PI;
-let DEGRAD;
-let RADDEG;
-let re;
-let sf;
-let sn;
-let ro;
-
-if (first === 0) {
-  PI = Math.asin(1.0) * 2.0;
-  DEGRAD = PI / 180.0;
-  RADDEG = 180.0 / PI;
-
-  re = Re / grid;
-  sf = Math.tan(PI * 0.25 + slat1 * 0.5);
-  sf = Math.pow(sf, sn) * Math.cos(slat1) / sn;
-  sn = Math.tan(PI * 0.25 + slat2 * 0.5) / Math.tan(PI * 0.25 + slat1 * 0.5);
-  sn = Math.log(Math.cos(slat1) / Math.cos(slat2)) / Math.log(sn);
-  ro = Math.tan(PI * 0.25 + olat * 0.5);
-  ro = re * sf / Math.pow(ro, sn);
-
-  first = 1;
+// 현재 시각에서 1시간 빼주기 위한 함수
+var modifyTime = function(hours)
+{
+  if (hours == '00')
+  {
+    hours = '23';
+  }
+  else
+  {
+    hours = parseInt(hours)-1;
+    hours=hours.toString().padStart(2,'0');
+  }
+  return hours;
 }
 
-function mapToGrid(lat, lon, code = 0) {
-  const ra = Math.tan(PI * 0.25 + lat * DEGRAD * 0.5);
-  const raPow = re * sf / Math.pow(ra, sn);
-  const theta = lon * DEGRAD - olon;
-  console.log(raPow);
+// 위도, 경도 -> x,y 좌표
+var RE = 6371.00877; // 지구 반경(km)
+var GRID = 5.0; // 격자 간격(km)
+var SLAT1 = 30.0; // 투영 위도1(degree)
+var SLAT2 = 60.0; // 투영 위도2(degree)
+var OLON = 126.0; // 기준점 경도(degree)
+var OLAT = 38.0; // 기준점 위도(degree)
+var XO = 43; // 기준점 X좌표(GRID)
+var YO = 136; // 기준점 Y좌표(GRID)    
 
-  let x = raPow * Math.sin(theta) + xo;
-  let y = ro - raPow * Math.cos(theta) + yo;
-  x = parseInt(x + 1.5);
-  y = parseInt(y + 1.5);
-  return [x, y];
+// LCC DFS 좌표변환 ( code : "toXY"(위경도->좌표, v1:위도, v2:경도), "toLL"(좌표->위경도,v1:x, v2:y) )
+function dfs_xy_conv(code, v1, v2) {
+    var DEGRAD = Math.PI / 180.0;
+    var RADDEG = 180.0 / Math.PI;
+
+    var re = RE / GRID;
+    var slat1 = SLAT1 * DEGRAD;
+    var slat2 = SLAT2 * DEGRAD;
+    var olon = OLON * DEGRAD;
+    var olat = OLAT * DEGRAD;
+
+    var sn = Math.tan(Math.PI * 0.25 + slat2 * 0.5) / Math.tan(Math.PI * 0.25 + slat1 * 0.5);
+    sn = Math.log(Math.cos(slat1) / Math.cos(slat2)) / Math.log(sn);
+    var sf = Math.tan(Math.PI * 0.25 + slat1 * 0.5);
+    sf = Math.pow(sf, sn) * Math.cos(slat1) / sn;
+    var ro = Math.tan(Math.PI * 0.25 + olat * 0.5);
+    ro = re * sf / Math.pow(ro, sn);
+    var rs = {};
+    if (code == "toXY") {
+        rs['lat'] = v1;
+        rs['lng'] = v2;
+        var ra = Math.tan(Math.PI * 0.25 + (v1) * DEGRAD * 0.5);
+        ra = re * sf / Math.pow(ra, sn);
+        var theta = v2 * DEGRAD - olon;
+        if (theta > Math.PI) theta -= 2.0 * Math.PI;
+        if (theta < -Math.PI) theta += 2.0 * Math.PI;
+        theta *= sn;
+        rs['x'] = Math.floor(ra * Math.sin(theta) + XO + 0.5);
+        rs['y'] = Math.floor(ro - ra * Math.cos(theta) + YO + 0.5);
+    }
+    else {
+        rs['x'] = v1;
+        rs['y'] = v2;
+        var xn = v1 - XO;
+        var yn = ro - v2 + YO;
+        ra = Math.sqrt(xn * xn + yn * yn);
+        if (sn < 0.0) - ra;
+        var alat = Math.pow((re * sf / ra), (1.0 / sn));
+        alat = 2.0 * Math.atan(alat) - Math.PI * 0.5;
+
+        if (Math.abs(xn) <= 0.0) {
+            theta = 0.0;
+        }
+        else {
+            if (Math.abs(yn) <= 0.0) {
+                theta = Math.PI * 0.5;
+                if (xn < 0.0) - theta;
+            }
+            else theta = Math.atan2(xn, yn);
+        }
+        var alon = theta / sn + olon;
+        rs['lat'] = alat * RADDEG;
+        rs['lng'] = alon * RADDEG;
+    }
+    return rs;
 }
+
+function extractWeather(json){
+  let temperature;
+  let sky;
+  let wind;
+  let rainOrsnow;
+  let rainfall;
+
+  const items = json.response.body.items.item;
+  const currentTime=items[0]["fcstTime"];
+  // console.log(currentTime);
+  items.forEach((dic)=>{
+    if (dic["fcstTime"]==currentTime){
+      switch(dic["category"]){
+        case "T1H": // 기온
+          temperature = dic["fcstValue"];
+          console.log(temperature);
+          break;
+        case "SKY": // 하늘 상태
+          sky =dic["fcstValue"];
+          break;
+        case "WSD": // 풍속
+          wind = dic["fcstValue"];
+          break;
+        case "PTY": // 강수형태
+          rainOrsnow = dic["fcstValue"];
+          break;
+        case "RN1" : // 강수량
+          rainfall = dic["fcstValue"];
+          break;
+      }
+    }
+  });
+  return [temperature, sky, wind, rainOrsnow, rainfall];
+};
+  
+
 
 export default function App() {
-   const [city, setCity]=useState("Loading...");
-  //const [location, setLocation] = useState();
-  const [days, setDays]=useState([]);
+  const [city, setCity]=useState("Loading...");
+  const [subregion, setSubregion]=useState("Loading...");
+  const [district, setDistrict]=useState();
+  // const [location, setLocation] = useState();
+  // const [days, setDays]=useState([]);
   const [ok, setOk] = useState(true);
   const getWeather = async () => {
     const {granted} = await Location.requestForegroundPermissionsAsync();
@@ -71,15 +141,16 @@ export default function App() {
       setOk(false);
     }
     const {coords:{latitude, longitude}} = await Location.getCurrentPositionAsync({accuracy:5});
-
-    // const location = await Location.reverseGeocodeAsync(
-    //   {latitude,longitude}, 
-    //   {useGoogleMaps:false}
-    // );
-    // setCity(location[0].city);
-
-
     
+
+    const location = await Location.reverseGeocodeAsync(
+      {latitude,longitude}, 
+      {useGoogleMaps:false}
+    );
+    setCity(location[0].city); // ex) 제주시
+    setDistrict(location[0].district); // ex) 일도이동
+    setSubregion(location[0].subregion); // ex) 봉화군
+
     const numOfRows = 60;
     const pageNo = 1;
 
@@ -91,39 +162,24 @@ export default function App() {
     var hours = currentDate.getHours().toString().padStart(2, '0');
     var minutes = currentDate.getMinutes().toString().padStart(2, '0');
 
-    // 매 시각 30분에 api 생성되기 때문에 현재 시각에서 30분 빼줌
-    if (parseInt(minutes) < 30)
-    {
-      if (hours == '00')
-      {
-        hours = '23';
-      }
-      else
-      {
-        hours = parseInt(hours)-1;
-        hours=hours.toString().padStart(2,'0');
-      }
-      minutes = (60-(30-parseInt(minutes))).toString();
-    }
+    hours = modifyTime(hours);
 
     const base_date = `${year}${month}${day}`;
     const base_time = `${hours}${minutes}`;
 
-    // const nx = 55;
-    // const ny = 127;
-    console.log(latitude,longitude);
-    const [nx, ny] = mapToGrid(latitude,longitude);
-    console.log(nx,ny);
-
+    var rs = dfs_xy_conv("toXY",latitude.toString(),longitude.toString());
+    // console.log(rs.x, rs.y);
+    const nx = rs.x;
+    const ny = rs.y;
+  
     const url = `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=${serviceKey}&numOfRows=${numOfRows}&pageNo=${pageNo}&base_date=${base_date}&base_time=${base_time}&nx=${nx}&ny=${ny}&dataType=json`;
     // console.log(url)
-    console.log({longitude});
 
     var items=[];
     const response = await fetch(url);
     const json = await response.json(); // 응답을 JSON 형태로 파싱
-    items = await json.response.body.items.item;
-    console.log(items);
+    weatherList=extractWeather(json);
+    console.log(weatherList[0]);
 
   };
 
@@ -136,7 +192,7 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="light"></StatusBar>
       <View style={styles.city}>
-        <Text style={styles.cityName}>{city}</Text>
+        <Text style={styles.cityName}>{city} {subregion} {district}</Text>
       </View>
       <ScrollView
         pagingEnabled 
