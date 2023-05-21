@@ -91,47 +91,90 @@ function dfs_xy_conv(code, v1, v2) {
     return rs;
 }
 
+// 현재 시간의 날씨 예보를 위한 함수
 function extractWeather(json){
-  let temperature;
-  let sky;
-  let wind;
-  let rainOrsnow;
-  let rainfall;
 
   const items = json.response.body.items.item;
-  const currentTime=items[0]["fcstTime"];
+  const currentTime=items[0]["fcstTime"]; // 현재 시간(hour)
   // console.log(currentTime);
+  let weatherInfo = {}; 
   items.forEach((dic)=>{
     if (dic["fcstTime"]==currentTime){
       switch(dic["category"]){
         case "T1H": // 기온
-          temperature = dic["fcstValue"];
-          console.log(temperature);
+          weatherInfo.temperature = dic["fcstValue"];
           break;
         case "SKY": // 하늘 상태
-          sky =dic["fcstValue"];
+          weatherInfo.sky =dic["fcstValue"];
           break;
         case "WSD": // 풍속
-          wind = dic["fcstValue"];
+          weatherInfo.wind = dic["fcstValue"];
           break;
         case "PTY": // 강수형태
-          rainOrsnow = dic["fcstValue"];
+          weatherInfo.rainOrsnow = dic["fcstValue"];
           break;
         case "RN1" : // 강수량
-          rainfall = dic["fcstValue"];
+          weatherInfo.rainfall = dic["fcstValue"];
           break;
       }
     }
   });
-  return [temperature, sky, wind, rainOrsnow, rainfall];
+  return weatherInfo;
 };
-  
 
+function commentWeather(weatherDict){
+  let commentDict={};
+  commentDict.temperature=weatherDict.temperature+"도";
+  commentDict.wind=weatherDict.wind+"m/s";
+  if (weatherDict.rainfall == "강수없음"){
+    commentDict.rainfall=weatherDict.rainfall;
+  }
+  else{
+    commentDict.rainfall=weatherDict.rainfall+"mm";
+  }
+  
+  switch(weatherDict.sky){
+    case "1":
+      commentDict.sky="맑음";
+      break;
+    case "3":
+      commentDict.sky="구름많음";
+      break;
+    case "4":
+      commentDict.sky="흐림";
+      break;
+  }
+  switch(weatherDict.rainOrsnow){
+    case "0":
+      commentDict.rainOrsnow="없음";
+      break;
+    case "1":
+      commentDict.rainOrsnow="비";
+      break;
+    case "2":
+      commentDict.rainOrsnow="비/눈";
+      break;
+    case "3":
+      commentDict.rainOrsnow="눈";
+      break;
+    case "5":
+      commentDict.rainOrsnow="빗방울";
+      break;
+    case "6":
+      commentDict.rainOrsnow="빗방울눈날림";
+      break;
+    case "7":
+      commentDict.rainOrsnow="눈날림";
+      break;
+  }   
+  return commentDict;
+}
 
 export default function App() {
   const [city, setCity]=useState("Loading...");
   const [subregion, setSubregion]=useState("Loading...");
   const [district, setDistrict]=useState();
+  
   // const [location, setLocation] = useState();
   // const [days, setDays]=useState([]);
   const [ok, setOk] = useState(true);
@@ -173,14 +216,12 @@ export default function App() {
     const ny = rs.y;
   
     const url = `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=${serviceKey}&numOfRows=${numOfRows}&pageNo=${pageNo}&base_date=${base_date}&base_time=${base_time}&nx=${nx}&ny=${ny}&dataType=json`;
-    // console.log(url)
+    console.log(url)
 
-    var items=[];
     const response = await fetch(url);
     const json = await response.json(); // 응답을 JSON 형태로 파싱
-    weatherList=extractWeather(json);
-    console.log(weatherList[0]);
-
+    weatherInfo=extractWeather(json);
+    console.log(commentWeather(weatherInfo));
   };
 
   useEffect(() => {
@@ -262,4 +303,3 @@ const styles = StyleSheet.create({
     fontSize:70,
   }
 })
- 
