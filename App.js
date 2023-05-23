@@ -93,8 +93,9 @@ function dfs_xy_conv(code, v1, v2) {
     return rs;
 }
 
-// 현재 시간의 날씨 예보를 위한 함수
-function extractWeather(json){
+// 날씨(현재 시간) 예보 코드 -> 값
+// 초단기예보 api
+function extractUltraSrtWeather(json){
   const items = json.response.body.items.item;
   const currentTime=items[0]["fcstTime"]; // 현재 시간(hour)
   // console.log(currentTime);
@@ -123,53 +124,102 @@ function extractWeather(json){
   return weatherInfo;
 };
 
-function commentWeather(weatherDict){
+// 날씨(현재 시간) 예보 코드 -> 값
+// 단기예보 api
+function extractVilageWeather(json){
+  const items = json.response.body.items.item;
+  let weatherInfo = {}; 
+  items.forEach((dic)=>{
+    if (dic["category"]=='TMN'){ // 최저 기온
+      weatherInfo.lowerTmp=dic["fcstValue"];
+    }
+    if (dic["category"]=='TMX'){ //최고 기온
+      weatherInfo.upperTmp=dic["fcstValue"];
+    }
+  });
+  console.log(weatherInfo);
+  return weatherInfo;
+};
+
+function commentWeather(weatherDict,apiType){
   let commentDict={};
-  commentDict.temperature=weatherDict.temperature+"도";
-  commentDict.wind=weatherDict.wind+"m/s";
-  if (weatherDict.rainfall == "강수없음"){
-    commentDict.rainfall=weatherDict.rainfall;
+  if (apiType=="ultraSrt"){
+    commentDict.temperature=weatherDict.temperature+"도";
+    commentDict.wind=weatherDict.wind+"m/s";
+    if (weatherDict.rainfall == "강수없음"){
+      commentDict.rainfall=weatherDict.rainfall;
+    }
+    else{
+      commentDict.rainfall=weatherDict.rainfall+"mm";
+    }
+    
+    switch(weatherDict.sky){
+      case "1":
+        commentDict.sky="맑음";
+        break;
+      case "3":
+        commentDict.sky="구름많음";
+        break;
+      case "4":
+        commentDict.sky="흐림";
+        break;
+    }
+    switch(weatherDict.rainOrsnow){
+      case "0":
+        commentDict.rainOrsnow="없음";
+        break;
+      case "1":
+        commentDict.rainOrsnow="비";
+        break;
+      case "2":
+        commentDict.rainOrsnow="비/눈";
+        break;
+      case "3":
+        commentDict.rainOrsnow="눈";
+        break;
+      case "5":
+        commentDict.rainOrsnow="빗방울";
+        break;
+      case "6":
+        commentDict.rainOrsnow="빗방울눈날림";
+        break;
+      case "7":
+        commentDict.rainOrsnow="눈날림";
+        break;
+    }   
   }
-  else{
-    commentDict.rainfall=weatherDict.rainfall+"mm";
-  }
-  
-  switch(weatherDict.sky){
-    case "1":
-      commentDict.sky="맑음";
-      break;
-    case "3":
-      commentDict.sky="구름많음";
-      break;
-    case "4":
-      commentDict.sky="흐림";
-      break;
-  }
-  switch(weatherDict.rainOrsnow){
-    case "0":
-      commentDict.rainOrsnow="없음";
-      break;
-    case "1":
-      commentDict.rainOrsnow="비";
-      break;
-    case "2":
-      commentDict.rainOrsnow="비/눈";
-      break;
-    case "3":
-      commentDict.rainOrsnow="눈";
-      break;
-    case "5":
-      commentDict.rainOrsnow="빗방울";
-      break;
-    case "6":
-      commentDict.rainOrsnow="빗방울눈날림";
-      break;
-    case "7":
-      commentDict.rainOrsnow="눈날림";
-      break;
-  }   
   return commentDict; 
 }
+
+// 초단기예보 api
+function getCurrnetWeatherUrl(latitude, longitude){
+  // const numOfRows = 60;
+  // const pageNo = 1;
+
+  // Get the current date and time
+  const currentDate = new Date();
+  const year = currentDate.getFullYear();
+  const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+  var day = currentDate.getDate().toString().padStart(2, '0');
+  var hours = currentDate.getHours().toString().padStart(2, '0');
+  var minutes = currentDate.getMinutes().toString().padStart(2, '0');
+
+  const modifiedTime = modifyTime(hours,day);
+  hours=modifiedTime[0];
+  day=modifiedTime[1];
+
+  const base_date = `${year}${month}${day}`;
+  const base_time = `${hours}${minutes}`;
+
+  var rs = dfs_xy_conv("toXY",latitude.toString(),longitude.toString());
+  // console.log(rs.x, rs.y);
+  const nx = rs.x;
+  const ny = rs.y;
+  
+  return [`http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=${serviceKey}&numOfRows=60&pageNo=1&base_date=${base_date}&base_time=${base_time}&nx=${nx}&ny=${ny}&dataType=json`,
+          `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${serviceKey}&numOfRows=254&pageNo=1&base_date=${base_date}&base_time=0200&nx=${nx}&ny=${ny}&dataType=json`];
+}
+
 
 export default function App() {
   const [city, setCity]=useState("Loading...");
@@ -177,10 +227,14 @@ export default function App() {
   const [district, setDistrict]=useState();
   const [TEMP, setTemp]=useState();
   const [SKY, setSky]=useState();
+  const [lowerTEMP, setLowerTemp]=useState();
+  const [upperTEMP, setUpperTemp]=useState();
   
   // const [location, setLocation] = useState();
   // const [days, setDays]=useState([]);
   const [ok, setOk] = useState(true);
+
+  // 현재(위치, 시간) 날씨
   const getWeather = async () => {
     const {granted} = await Location.requestForegroundPermissionsAsync();
     if(!granted){
@@ -197,44 +251,49 @@ export default function App() {
     setDistrict(location[0].district); // ex) 일도이동
     setSubregion(location[0].subregion); // ex) 봉화군
 
-    const numOfRows = 60;
-    const pageNo = 1;
-
-    // Get the current date and time
-    const currentDate = new Date();
-    const year = currentDate.getFullYear();
-    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-    var day = currentDate.getDate().toString().padStart(2, '0');
-    var hours = currentDate.getHours().toString().padStart(2, '0');
-    var minutes = currentDate.getMinutes().toString().padStart(2, '0');
-
-    const modifiedTime = modifyTime(hours,day);
-    hours=modifiedTime[0];
-    day=modifiedTime[1];
-
-    const base_date = `${year}${month}${day}`;
-    const base_time = `${hours}${minutes}`;
-
-    var rs = dfs_xy_conv("toXY",latitude.toString(),longitude.toString());
-    // console.log(rs.x, rs.y);
-    const nx = rs.x;
-    const ny = rs.y;
-  
-    const url = `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=${serviceKey}&numOfRows=${numOfRows}&pageNo=${pageNo}&base_date=${base_date}&base_time=${base_time}&nx=${nx}&ny=${ny}&dataType=json`;
-    console.log(url)
-
-    const response = await fetch(url);
-    const json = await response.json(); // 응답을 JSON 형태로 파싱
-    weatherInfo=extractWeather(json);
-    console.log(commentWeather(weatherInfo));
+    // 초단기 예보 api url
+    const ultraSrtUrl = getCurrnetWeatherUrl(latitude, longitude)[0];
+    // console.log(url);
+    
+    const ultraSrtResponse = await fetch(ultraSrtUrl);
+    const ultraSrtjson = await ultraSrtResponse.json(); // 응답을 JSON 형태로 파싱
+    ultraSrtWeatherInfo=extractUltraSrtWeather(ultraSrtjson);
+    console.log("초단기 예보 : ",commentWeather(ultraSrtWeatherInfo,"ultraSrt"));
     // JSON.stringify() : 객체를 직접적으로 React 자식 요소로 사용할 수 없기 때문에 객체를 문자열로 변환
     // .replace(/\"/gi, "") : 따옴표 제거
-    setTemp(JSON.stringify(commentWeather(weatherInfo).temperature).replace(/\"/gi, ""));
-    setSky(JSON.stringify(commentWeather(weatherInfo).sky).replace(/\"/gi, "")); 
+    setTemp(JSON.stringify(commentWeather(ultraSrtWeatherInfo,"ultraSrt").temperature).replace(/\"/gi, ""));
+    setSky(JSON.stringify(commentWeather(ultraSrtWeatherInfo,"ultraSrt").sky).replace(/\"/gi, "")); 
+    
+
+    // 단기 예보 api url
+    const vilageUrl = getCurrnetWeatherUrl(latitude, longitude)[1];
+    console.log(vilageUrl);
+    const vilageResponse = await fetch(vilageUrl);
+    const vilageJson = await vilageResponse.json(); // 응답을 JSON 형태로 파싱
+    vilageWeatherInfo=extractVilageWeather(vilageJson);
+    console.log("단기 예보 : ",(vilageWeatherInfo));
+
+    setLowerTemp(JSON.stringify(vilageWeatherInfo.lowerTmp).replace(/\"/gi, ""));
+    setUpperTemp(JSON.stringify(vilageWeatherInfo.upperTmp).replace(/\"/gi, "")); 
+  };
+
+  // 날씨 비교 분석
+  const compareWeather = async () => {
+    const testUrl = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=60&pageNo=1&base_date=20230523&base_time=1251&nx=60&ny=127&dataType=json`;
+    const compareResponse = await fetch(testUrl);
+    const compareJson = await compareResponse.json();
+    compareInfo=extractUltraSrtWeather(compareJson);
+    console.log("검색 지역 : ", commentWeather(compareInfo,"ultraSrt"));
+
+    
+
+    
+
   };
 
   useEffect(() => {
     getWeather();
+    compareWeather();
   }, []);
 
 
@@ -255,8 +314,8 @@ export default function App() {
           <Text style={styles.description}>{SKY}</Text>
         </View>
         <View style={styles.day}>
-          <Text style={styles.temp}>27</Text>
-          <Text style={styles.description}>Sunny</Text>
+          <Text style={styles.temp}>{lowerTEMP}</Text>
+          <Text style={styles.description}>{upperTEMP}</Text>
         </View>
         <View style={styles.day}>
           <Text style={styles.temp}>27</Text>
