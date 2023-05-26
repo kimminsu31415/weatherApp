@@ -13,7 +13,10 @@
     "expo-location": "~15.1.1",
     "expo-status-bar": "~1.4.4",
     "react": "18.2.0",
-    "react-native": "0.71.7"
+    "react-native": "0.71.7",
+    "react-native-fs": "^2.20.0",
+    "react-native-xml2js": "^1.0.3",
+    "xml2js": "^0.6.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
