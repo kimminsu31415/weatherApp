@@ -169,6 +169,9 @@ function extractUltraSrtWeather(json){
         case "RN1" : // 강수량
           weatherInfo.rainfall = dic["fcstValue"];
           break;
+        case "REH" : // 습도
+          weatherInfo.humidity=dic["fcstValue"];
+          break;
       }
     }
   });
@@ -296,7 +299,18 @@ function getCurrnetWeatherUrl(latitude, longitude, apiType){
 function getCurrnetPmUrl(region){
   region=modifyRegion(region);
   return `http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty?serviceKey=${serviceKey}&numOfRows=125&pageNo=1&sidoName=${region}&ver=1.0`;
+}
 
+function sensoryTemp(temp,humidity){
+  console.log("기온,습도",temp,humidity);
+  let Tw=temp*Math.atan(0.151977*Math.sqrt(humidity+8.313659)); //Tw(습구온도)
+  Tw += Math.atan(temp+humidity);
+  Tw -= Math.atan(humidity-1.67633);
+  Tw += (0.00391838*Math.pow(humidity,1.5) * Math.atan(0.023101*humidity));
+  Tw -= 4.686035;
+  // Math.round(Number * 10^n) / 10^n
+  let result=Math.round((-0.2442 + (0.55399*Tw) + (0.45535*temp) - (0.0022*Math.pow(Tw,2)) + (0.00278*Tw*temp) + 3.0) * 10 ) / 10; // 체감온도
+  return result;
 }
 
 export default function App() {
@@ -305,6 +319,10 @@ export default function App() {
   const [district, setDistrict]=useState();
   const [TEMP, setTemp]=useState();
   const [SKY, setSky]=useState();
+  const [wind, setWind]=useState();
+  const [rainfall, setRainfall]=useState();
+  // const [humidity, setHumidity]=useState();
+  const [sensoryTEMP, setSensoryTemp]=useState();
   const [lowerTEMP, setLowerTemp]=useState();
   const [upperTEMP, setUpperTemp]=useState();
   const [pm10, setPm10]=useState();
@@ -341,11 +359,18 @@ export default function App() {
     const ultraSrtjson = await ultraSrtResponse.json(); // 응답을 JSON 형태로 파싱
     console.log("check :", ultraSrtjson);
     ultraSrtWeatherInfo= extractUltraSrtWeather(ultraSrtjson);
+    // setHumidity(ultraSrtWeatherInfo.humidity);
+    setSensoryTemp(sensoryTemp(parseFloat(ultraSrtWeatherInfo.temperature),parseFloat(ultraSrtWeatherInfo.humidity)));
+    setRainfall(ultraSrtWeatherInfo.rainfall);
     console.log("초단기 예보 : ",commentWeather(ultraSrtWeatherInfo,"ultraSrt"));
     // JSON.stringify() : 객체를 직접적으로 React 자식 요소로 사용할 수 없기 때문에 객체를 문자열로 변환
     // .replace(/\"/gi, "") : 따옴표 제거
     setTemp(JSON.stringify(commentWeather(ultraSrtWeatherInfo,"ultraSrt").temperature).replace(/\"/gi, ""));
-    setSky(JSON.stringify(commentWeather(ultraSrtWeatherInfo,"ultraSrt").sky).replace(/\"/gi, "")); 
+    setSky(JSON.stringify(commentWeather(ultraSrtWeatherInfo,"ultraSrt").sky).replace(/\"/gi, ""));
+    setWind(JSON.stringify(commentWeather(ultraSrtWeatherInfo,"ultraSrt").wind).replace(/\"/gi, ""));
+    
+    
+    
     
 
     // 단기 예보 api url
@@ -431,7 +456,7 @@ export default function App() {
 
   // 날씨 비교 분석
   const compareWeather = async () => {
-    const testUrl = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=60&pageNo=1&base_date=20230526&base_time=1400&nx=60&ny=127&dataType=json`;
+    const testUrl = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=60&pageNo=1&base_date=20230527&base_time=1400&nx=60&ny=127&dataType=json`;
     const compareResponse = await fetch(testUrl);
     const compareJson = await compareResponse.json();
     compareInfo=extractUltraSrtWeather(compareJson);
@@ -478,12 +503,16 @@ export default function App() {
           <Text style={styles.description}>{pm25}</Text>
         </View>
         <View style={styles.day}>
-          <Text style={styles.temp}>27</Text>
-          <Text style={styles.description}>Sunny</Text>
+          <Text style={styles.temp}>체감온도</Text>
+          <Text style={styles.description}>{sensoryTEMP}</Text>
         </View>
         <View style={styles.day}>
-          <Text style={styles.temp}>27</Text>
-          <Text style={styles.description}>Sunny</Text>
+          <Text style={styles.temp}>풍속</Text>
+          <Text style={styles.description}>{wind}</Text>
+        </View>
+        <View style={styles.day}>
+          <Text style={styles.temp}>강수량</Text>
+          <Text style={styles.description}>{rainfall}</Text>
         </View>
       </ScrollView>
     </View>
