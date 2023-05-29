@@ -2,10 +2,18 @@ import * as Location from 'expo-location';
 import { StatusBar } from "expo-status-bar";
 import React, {useEffect, useState} from "react";
 import { View, Text, Dimensions, StyleSheet, ScrollView } from 'react-native';
+import {
+  LineChart,
+  BarChart,
+  PieChart,
+  ProgressChart,
+  ContributionGraph,
+  StackedBarChart
+} from "react-native-chart-kit";
 
 
 
-const {width:SCREEN_WIDTH} = Dimensions.get("window");
+// const {width:SCREEN_WIDTH} = Dimensions.get("window");
 //console.log(SCREEN_WIDTH);
 
 // api key
@@ -169,6 +177,9 @@ function extractUltraSrtWeather(json){
         case "RN1" : // 강수량
           weatherInfo.rainfall = dic["fcstValue"];
           break;
+        case "REH" : // 습도
+          weatherInfo.humidity=dic["fcstValue"];
+          break;
       }
     }
   });
@@ -179,7 +190,11 @@ function extractUltraSrtWeather(json){
 // 단기예보 api
 function extractVilageWeather(json){
   const items = json.response.body.items.item;
-  let weatherInfo = {}; 
+  let weatherInfo = {};
+  let tmpfortime = {}; 
+  let windfortime = {}; 
+  let rainfortime = {};
+  let humidityfortime = {};
   items.forEach((dic)=>{
     if (dic["category"]=='TMN'){ // 최저 기온
       weatherInfo.lowerTmp=dic["fcstValue"];
@@ -187,9 +202,96 @@ function extractVilageWeather(json){
     if (dic["category"]=='TMX'){ //최고 기온
       weatherInfo.upperTmp=dic["fcstValue"];
     }
+    if (dic["category"]=='TMP'){
+      switch (dic["fcstTime"]){
+        case '0600':
+          tmpfortime.tmp06=dic["fcstValue"];
+          break;
+        case '0900':
+          tmpfortime.tmp09=dic["fcstValue"];
+          break;
+        case '1200':
+          tmpfortime.tmp12=dic["fcstValue"];
+          break;
+        case '1500':
+          tmpfortime.tmp15=dic["fcstValue"];
+          break;
+        case '1800':
+          tmpfortime.tmp18=dic["fcstValue"];
+          break;
+        case '2100':
+          tmpfortime.tmp21=dic["fcstValue"];
+      }
+    }
+    if (dic["category"]=='WSD'){
+      switch (dic["fcstTime"]){
+        case '0600':
+          windfortime.wind06=dic["fcstValue"];
+          break;
+        case '0900':
+          windfortime.wind09=dic["fcstValue"];
+          break;
+        case '1200':
+          windfortime.wind12=dic["fcstValue"];
+          break;
+        case '1500':
+          windfortime.wind15=dic["fcstValue"];
+          break;
+        case '1800':
+          windfortime.wind18=dic["fcstValue"];
+          break;
+        case '2100':
+          windfortime.wind21=dic["fcstValue"];
+      }
+    }
+    if (dic["category"]=='PCP'){
+      if (dic["fcstValue"]=="강수없음"){
+        dic["fcstValue"]="0.0mm"
+      }
+      switch (dic["fcstTime"]){
+        case '0600':
+          rainfortime.rain06=dic["fcstValue"];
+          break;
+        case '0900':
+          rainfortime.rain09=dic["fcstValue"];
+          break;
+        case '1200':
+          rainfortime.rain12=dic["fcstValue"];
+          break;
+        case '1500':
+          rainfortime.rain15=dic["fcstValue"];
+          break;
+        case '1800':
+          rainfortime.rain18=dic["fcstValue"];
+          break;
+        case '2100':
+          rainfortime.rain21=dic["fcstValue"];
+      }
+    }
+    if (dic["category"]=='REH'){
+      switch (dic["fcstTime"]){
+        case '0600':
+          humidityfortime.humidity06=dic["fcstValue"];
+          break;
+        case '0900':
+          humidityfortime.humidity09=dic["fcstValue"];
+          break;
+        case '1200':
+          humidityfortime.humidity12=dic["fcstValue"];
+          break;
+        case '1500':
+          humidityfortime.humidity15=dic["fcstValue"];
+          break;
+        case '1800':
+          humidityfortime.humidity18=dic["fcstValue"];
+          break;
+        case '2100':
+          humidityfortime.humidity21=dic["fcstValue"];
+      }
+    }
   });
-  console.log(weatherInfo);
-  return weatherInfo;
+  console.log("강수량 데이터 확인:",rainfortime);
+  return [weatherInfo, tmpfortime, windfortime, rainfortime, humidityfortime];
 };
 
 function extractPm(grade){
@@ -296,8 +398,72 @@ function getCurrnetWeatherUrl(latitude, longitude, apiType){
 function getCurrnetPmUrl(region){
   region=modifyRegion(region);
   return `http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty?serviceKey=${serviceKey}&numOfRows=125&pageNo=1&sidoName=${region}&ver=1.0`;
-
 }
+
+function sensoryTemp(temp,humidity){
+  console.log("기온,습도",temp,humidity);
+  let Tw=temp*Math.atan(0.151977*Math.sqrt(humidity+8.313659)); //Tw(습구온도)
+  Tw += Math.atan(temp+humidity);
+  Tw -= Math.atan(humidity-1.67633);
+  Tw += (0.00391838*Math.pow(humidity,1.5) * Math.atan(0.023101*humidity));
+  Tw -= 4.686035;
+  // Math.round(Number * 10^n) / 10^n
+  let result=Math.round((-0.2442 + (0.55399*Tw) + (0.45535*temp) - (0.0022*Math.pow(Tw,2)) + (0.00278*Tw*temp) + 3.0) * 10 ) / 10; // 체감온도
+  return result;
+}
+
+
+
+// var data = {
+//   labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
+//   datasets : [
+//     {
+//       data: [10, 10, 10, 10, 10, 10],
+//       color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
+//       strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
+//     },
+//     {
+//       data: [10, 35, 18, 70, 89, 33],
+//       color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
+//       strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
+//     }
+//   ],
+//   legend: ["시간대별 기온 비교"] // optional
+// };
+
+function makeData(currentTmpForTime){
+  const values = [];
+  Object.values(currentTmpForTime).forEach(value => {
+    values.push(parseInt(value));
+  });
+  // console.log(values);
+  console.log("makeData 확인",typeof(values[0]));
+  return values;
+}
+
+function makeSensoryData(tmpList,humidityList){
+  const values = [];
+  for(let i=0 ; i<tmpList.length ; i++){
+    values.push(sensoryTemp(tmpList[i],humidityList[i]))
+  }
+  // console.log(values);
+  // console.log("makeData 확인",typeof(values[0]));
+  return values;
+}
+
+
+const {width:screenWidth} = Dimensions.get("window");
+
+const chartConfig = {
+  backgroundGradientFrom: "#1E2923",
+  backgroundGradientFromOpacity: 0,
+  backgroundGradientTo: "#08130D",
+  backgroundGradientToOpacity: 0.5,
+  color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
+  strokeWidth: 2, // optional, default 3
+  barPercentage: 0.5,
+  useShadowColorFromDataset: false // optional
+};
 
 export default function App() {
   const [city, setCity]=useState("Loading...");
@@ -305,10 +471,24 @@ export default function App() {
   const [district, setDistrict]=useState();
   const [TEMP, setTemp]=useState();
   const [SKY, setSky]=useState();
+  const [wind, setWind]=useState();
+  const [rainfall, setRainfall]=useState();
+  // const [humidity, setHumidity]=useState();
+  const [sensoryTEMP, setSensoryTemp]=useState();
   const [lowerTEMP, setLowerTemp]=useState();
   const [upperTEMP, setUpperTemp]=useState();
-  const [pm10, setPm10]=useState();
-  const [pm25, setPm25]=useState();
+  const [pmGrade10, setPmGrade10]=useState();
+  const [pmGrade25, setPmGrade25]=useState();
+  const [pmValue10, setPmValue10]=useState();
+  const [pmValue25, setPmValue25]=useState();
+  const [tempData, setTempData]=useState(null);
+  const [windData, setWindData]=useState(null);
+  const [rainData, setRainData]=useState(null);
+  const [sensoryData, setSensoryData]=useState(null);
+  
+  const [vilageJson, setVilageJson]=useState();
+  const [isLoading, setIsLoading] = useState(true);
+  
   
   // const [location, setLocation] = useState();
   // const [days, setDays]=useState([]);
@@ -316,10 +496,12 @@ export default function App() {
 
   // 현재(위치, 시간) 날씨
   const getWeather = async () => {
+    // 승인 요청
     const {granted} = await Location.requestForegroundPermissionsAsync();
     if(!granted){
       setOk(false);
     }
+    // 위도, 경도
     const {coords:{latitude, longitude}} = await Location.getCurrentPositionAsync({accuracy:5});
     
 
@@ -333,6 +515,7 @@ export default function App() {
     setDistrict(location[0].district); // ex) 일도이동
     setSubregion(location[0].subregion); // ex) 봉화군
 
+
     // 초단기 예보 api url
     const ultraSrtUrl = await getCurrnetWeatherUrl(latitude, longitude,"ultraSrt")[0];
     console.log(ultraSrtUrl);
@@ -341,21 +524,29 @@ export default function App() {
     const ultraSrtjson = await ultraSrtResponse.json(); // 응답을 JSON 형태로 파싱
     console.log("check :", ultraSrtjson);
     ultraSrtWeatherInfo= extractUltraSrtWeather(ultraSrtjson);
+    // setHumidity(ultraSrtWeatherInfo.humidity);
+    setSensoryTemp(sensoryTemp(parseFloat(ultraSrtWeatherInfo.temperature),parseFloat(ultraSrtWeatherInfo.humidity)));
+    setRainfall(ultraSrtWeatherInfo.rainfall);
     console.log("초단기 예보 : ",commentWeather(ultraSrtWeatherInfo,"ultraSrt"));
     // JSON.stringify() : 객체를 직접적으로 React 자식 요소로 사용할 수 없기 때문에 객체를 문자열로 변환
     // .replace(/\"/gi, "") : 따옴표 제거
-    setTemp(JSON.stringify(commentWeather(ultraSrtWeatherInfo,"ultraSrt").temperature).replace(/\"/gi, ""));
-    setSky(JSON.stringify(commentWeather(ultraSrtWeatherInfo,"ultraSrt").sky).replace(/\"/gi, "")); 
+    setTemp(JSON.stringify(commentWeather(ultraSrtWeatherInfo,"ultraSrt").temperature).replace(/\"/gi, "")); // 기온
+    setSky(JSON.stringify(commentWeather(ultraSrtWeatherInfo,"ultraSrt").sky).replace(/\"/gi, "")); // 하늘 상태
+    setWind(JSON.stringify(commentWeather(ultraSrtWeatherInfo,"ultraSrt").wind).replace(/\"/gi, "")); // 풍속
+    
     
 
     // 단기 예보 api url
     const vilageUrl = getCurrnetWeatherUrl(latitude, longitude,"vilage")[1];
-    console.log(vilageUrl);
+    console.log("단기예보 url",vilageUrl);
     const vilageResponse = await fetch(vilageUrl);
     const vilageJson = await vilageResponse.json(); // 응답을 JSON 형태로 파싱
+    setVilageJson(vilageJson);
     // console.log("json1:",vilageJson);
-    vilageWeatherInfo=extractVilageWeather(vilageJson);
-    console.log("단기 예보 : ",(vilageWeatherInfo));
+    vilageWeatherInfo=extractVilageWeather(vilageJson)[0];
+    
+
+    console.log("단기 예보 check : ",(vilageWeatherInfo));
 
     setLowerTemp(JSON.stringify(vilageWeatherInfo.lowerTmp).replace(/\"/gi, ""));
     setUpperTemp(JSON.stringify(vilageWeatherInfo.upperTmp).replace(/\"/gi, ""));
@@ -388,27 +579,43 @@ export default function App() {
 
     try {
       var parseResult = await parseXml(pmResponse);
-      var pmSum10=0;
-      var pmSum25 = 0;
-      var count10=0;
-      var count25 = 0;
+      var pmGradeSum10=0; // 미세먼지 등급
+      var pmGradeSum25 = 0; // 초미세먼지 등급
+      var pmValueSum10=0; // 미세먼지 농도
+      var pmValueSum25=0; // 초미세먼지 농도
+      var countGrade10=0;
+      var countGrade25 = 0;
+      var countValue10=0;
+      var countValue25=0;
       const items = parseResult.response.body[0].items[0].item;
       for (const item of items) {
         const pm10Grade = parseInt(item.pm10Grade[0]);
         const pm25Grade = parseInt(item.pm25Grade[0]);
+        const pm10Value = parseInt(item.pm10Value[0]);
+        const pm25Value = parseInt(item.pm25Value[0]);
         if (!isNaN(pm10Grade)) {
-          pmSum10 += pm10Grade;
-          count10 += 1;
+          pmGradeSum10 += pm10Grade;
+          countGrade10 += 1;
         }
         if (!isNaN(pm25Grade)) {
-          pmSum25 += pm25Grade;
-          count25 += 1;
+          pmGradeSum25 += pm25Grade;
+          countGrade25 += 1;
+        }
+        if (!isNaN(pm10Value)) {
+          pmValueSum10 += pm10Value;
+          countValue10 += 1;
+        }
+        if (!isNaN(pm25Value)) {
+          pmValueSum25 += pm25Value;
+          countValue25 += 1;
         }
         // console.log("pm10Grade:", pm10Grade);
       }
-      setPm10(extractPm(Math.round(pmSum10 / count10)));
-      setPm25(extractPm(Math.round(pmSum25 / count25)));
-      console.log("미세먼지 등급: ",pm10);
+      setPmGrade10(extractPm(Math.round(pmGradeSum10 / countGrade10)));
+      setPmGrade25(extractPm(Math.round(pmGradeSum25 / countGrade25)));
+      setPmValue10(Math.round(pmValueSum10 / countValue10));
+      setPmValue25(Math.round(pmValueSum25 / countValue25));
+      console.log("미세먼지 농도: ",pmValue10);
     } catch (err) {
       console.log("Error:", err); // console에 'Error: [TypeError: Cannot read property 'body' of undefined]' 이렇게 떠도 앱에는 잘 출력됨(왜..?)
     }
@@ -431,16 +638,123 @@ export default function App() {
 
   // 날씨 비교 분석
   const compareWeather = async () => {
-    const testUrl = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=60&pageNo=1&base_date=20230526&base_time=1400&nx=60&ny=127&dataType=json`;
+    if (!vilageJson) {
+      // vilageJson이 업데이트되지 않은 경우, 잠시 후에 다시 호출
+      setTimeout(compareWeather, 1000); // 1초 후에 compareWeather 함수 호출
+      return;
+    }
+    const testUrl = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=60&pageNo=1&base_date=20230529&base_time=1400&nx=60&ny=127&dataType=json`;
+    const testUrl2 = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=290&pageNo=1&base_date=20230528&base_time=2300&nx=60&ny=127&dataType=json`;
     const compareResponse = await fetch(testUrl);
     const compareJson = await compareResponse.json();
-    compareInfo=extractUltraSrtWeather(compareJson);
+    const searchResponse = await fetch(testUrl2);
+    const searchJson = await searchResponse.json();
+
+    // 검색 지역 초단기예보
+    compareInfo=extractUltraSrtWeather(compareJson); 
     console.log("검색 지역 : ", commentWeather(compareInfo,"ultraSrt"));
 
-    
+    // getWeather에서 생성한 vilageJson 사용
+    // 6,9,12,15,18,21시 기온
+    currentTmpForTime=extractVilageWeather(vilageJson)[1]; 
+    searchTmpForTime=extractVilageWeather(searchJson)[1];
+    const currentTmpList=makeData(currentTmpForTime);
+    const searchTmpList=makeData(searchTmpForTime);
+    //console.log("검색 지역 기온 : ", searchTmpForTime);
 
-    
+    // 6,9,12,15,18,21시 풍속
+    currentWindForTime=extractVilageWeather(vilageJson)[2]; 
+    searchWindForTime=extractVilageWeather(searchJson)[2];
 
+    // 6,9,12,15,18,21시 강수량
+    currentRainForTime=extractVilageWeather(vilageJson)[3];
+    searchRainForTime=extractVilageWeather(searchJson)[3];
+
+    // 6,9,12,15,18,21시 습도
+    currentHumidityForTime=extractVilageWeather(vilageJson)[4];
+    searchHumidityForTime=extractVilageWeather(searchJson)[4];
+    const currentHumidityList=makeData(currentHumidityForTime);
+    const searchHumidityList=makeData(searchHumidityForTime);
+
+    const currentSensoryData = makeSensoryData(currentTmpList,currentHumidityList);
+    const searchSensoryData = makeSensoryData(searchTmpList,searchHumidityList);
+
+    const dataForTmp = {
+      labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
+      datasets : [
+        {
+          data: makeData(currentTmpForTime),
+          color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
+          strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
+        },
+        {
+          data: makeData(searchTmpForTime),
+          color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
+          strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
+        }
+      ],
+      legend: ["시간대별 기온 비교"] // optional
+    };
+
+    const dataForWind = {
+      labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
+      datasets : [
+        {
+          data: makeData(currentWindForTime),
+          color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
+          strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
+        },
+        {
+          data: makeData(searchWindForTime),
+          color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
+          strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
+        }
+      ],
+      legend: ["시간대별 풍속 비교"] // optional
+    };
+
+    const dataForRain = {
+      labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
+      datasets : [
+        {
+          data: makeData(currentRainForTime),
+          color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
+          strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
+        },
+        {
+          data: makeData(searchRainForTime),
+          color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
+          strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
+        }
+      ],
+      legend: ["시간대별 강수량 비교"] // optional
+    };
+
+    const dataForSensory = {
+      labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
+      datasets : [
+        {
+          data: currentSensoryData,
+          color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
+          strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
+        },
+        {
+          data: searchSensoryData,
+          color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
+          strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
+        }
+      ],
+      legend: ["시간대별 체감온도 비교"] // optional
+    };
+
+    // console.log("data 확인",data.datasets[0].data);
+    setTempData(dataForTmp);
+    setWindData(dataForWind);
+    setRainData(dataForRain);
+    setSensoryData(dataForSensory);
+    setIsLoading(false); // 데이터 로딩 완료 상태 설정
+
+  
   };
 
   useEffect(() => {
@@ -448,6 +762,14 @@ export default function App() {
     compareWeather();
   }, []);
 
+  if (!tempData) {
+    // tempData가 아직 초기화되지 않았을 경우 로딩 중 표시 등을 할 수 있습니다.
+    return (
+      <View>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -455,6 +777,23 @@ export default function App() {
       <View style={styles.city}>
         <Text style={styles.cityName}>{city} {subregion} {district}</Text>
       </View>
+      
+      {/* {tempData && (
+      <LineChart
+        data={tempData}
+        width={screenWidth}
+        height={220}
+        chartConfig={chartConfig}
+      />
+      )}
+      {windData && (
+        <LineChart
+          data={windData}
+          width={screenWidth}
+          height={220}
+          chartConfig={chartConfig}
+        />
+      )}   */}
       <ScrollView
         pagingEnabled 
         showsHorizontalScrollIndicator={false}
@@ -462,28 +801,92 @@ export default function App() {
         contentContainerStyle={styles.weather}
       >
         <View style={styles.day}>
+        {isLoading ? (
+        <Text>Loading...</Text> // 로딩 상태 표시
+        ) : (
+          <>{tempData && (
+            <LineChart
+              data={tempData}
+              width={screenWidth}
+              height={220}
+              chartConfig={chartConfig}
+            />)} 
+          </>
+        )}
           <Text style={styles.temp}>{TEMP}</Text>
           <Text style={styles.description}>{SKY}</Text>
         </View>
         <View style={styles.day}>
+        {isLoading ? (
+        <Text>Loading...</Text> // 로딩 상태 표시
+      ) : (
+        <>
+          {windData && (
+          <LineChart
+            data={windData}
+            width={screenWidth}
+            height={220}
+            chartConfig={chartConfig}
+          />
+          )}  
+        </>
+      )}
           <Text style={styles.temp}>{lowerTEMP}</Text>
           <Text style={styles.description}>{upperTEMP}</Text>
         </View>
         <View style={styles.day}>
-          <Text style={styles.temp}>미세먼지 </Text>
-          <Text style={styles.description}>{pm10}</Text>
+        {isLoading ? (
+        <Text>Loading...</Text> // 로딩 상태 표시
+      ) : (
+        <>
+          {rainData && (
+          <LineChart
+            data={rainData}
+            width={screenWidth}
+            height={220}
+            chartConfig={chartConfig}
+          />
+          )}  
+        </>
+      )}
+          <Text style={styles.temp}>미세먼지 등급 </Text>
+          <Text style={styles.description}>{pmGrade10}</Text>
         </View>
         <View style={styles.day}>
-          <Text style={styles.temp}>초미세먼지</Text>
-          <Text style={styles.description}>{pm25}</Text>
+        {isLoading ? (
+        <Text>Loading...</Text> // 로딩 상태 표시
+        ) : (
+          <>{sensoryData && (
+            <LineChart
+              data={sensoryData}
+              width={screenWidth}
+              height={220}
+              chartConfig={chartConfig}
+            />)} 
+          </>
+        )}
+          <Text style={styles.temp}>초미세먼지 등급</Text>
+          <Text style={styles.description}>{pmGrade25}</Text>
         </View>
         <View style={styles.day}>
-          <Text style={styles.temp}>27</Text>
-          <Text style={styles.description}>Sunny</Text>
+          <Text style={styles.temp}>미세먼지 농도</Text>
+          <Text style={styles.description}>{pmValue10}</Text>
         </View>
         <View style={styles.day}>
-          <Text style={styles.temp}>27</Text>
-          <Text style={styles.description}>Sunny</Text>
+          <Text style={styles.temp}>초미세먼지 농도</Text>
+          <Text style={styles.description}>{pmValue25}</Text>
+        </View>
+        <View style={styles.day}>
+          <Text style={styles.temp}>체감온도</Text>
+          <Text style={styles.description}>{sensoryTEMP}</Text>
+        </View>
+        <View style={styles.day}>
+          <Text style={styles.temp}>풍속</Text>
+          <Text style={styles.description}>{wind}</Text>
+        </View>
+        <View style={styles.day}>
+          <Text style={styles.temp}>강수량</Text>
+          <Text style={styles.description}>{rainfall}</Text>
         </View>
       </ScrollView>
     </View>
@@ -510,7 +913,7 @@ const styles = StyleSheet.create({
     //backgroundColor:"blue"
   },
   day:{
-    width:SCREEN_WIDTH,
+    width:screenWidth,
     //flex:1,
     //backgroundColor:"teal",
     alignItems:"center"
