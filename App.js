@@ -1,14 +1,9 @@
 import * as Location from 'expo-location';
 import { StatusBar } from "expo-status-bar";
 import React, {useEffect, useState} from "react";
-import { View, Text, Dimensions, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Dimensions, StyleSheet, ScrollView, TextInput, Button } from 'react-native';
 import {
   LineChart,
-  BarChart,
-  PieChart,
-  ProgressChart,
-  ContributionGraph,
-  StackedBarChart
 } from "react-native-chart-kit";
 
 
@@ -19,6 +14,18 @@ import {
 // api key
 const serviceKey = 'DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D';
                     
+const locationJson = require('./data.json');
+
+
+
+// const location = searchLocation("청운효자동");
+// if (location) {
+//   const { latitude, longitude } = location;
+//   console.log("위도:", latitude);
+//   console.log("경도:", longitude);
+// } else {
+//   console.log("지역을 찾을 수 없습니다.");
+// }
 
 // 초단기예보 : 현재 시각에서 1시간 빼줌 (예외처리 : 23시)
 // 단기예보 : 어제 날짜, 23시로 지정
@@ -387,7 +394,7 @@ function getCurrnetWeatherUrl(latitude, longitude, apiType){
   const base_time = `${hours}${minutes}`;
 
   var rs = dfs_xy_conv("toXY",latitude.toString(),longitude.toString());
-  // console.log(rs.x, rs.y);
+  // console.log("x,y 확인",rs.x, rs.y);
   const nx = rs.x;
   const ny = rs.y;
   
@@ -489,11 +496,31 @@ export default function App() {
   const [vilageJson, setVilageJson]=useState();
   const [isLoading, setIsLoading] = useState(true);
   
+  // 검색 기능을 위한.
+  const [locationName, setLocationName] = useState('');
+  const [searchLatitude, setLatitude] = useState('');
+  const [searchLongitude, setLongitude] = useState('');
   
   // const [location, setLocation] = useState();
   // const [days, setDays]=useState([]);
   const [ok, setOk] = useState(true);
 
+  // 검색 기능
+  const searchLocation = () => {
+    const result = locationJson.find(item => item['3단계'] === locationName);
+    if (result) {
+      const { '위도(초/100)': lat, '경도(초/100)': lon } = result;
+      setLatitude(lat);
+      setLongitude(lon);
+      const searchUrl = getCurrnetWeatherUrl(searchLatitude, searchLongitude,"ultraSrt")[0];
+      console.log("검색 지역 url",searchUrl);
+    }
+    else {
+      setLatitude('');
+      setLongitude('');
+    }
+  };
+  
   // 현재(위치, 시간) 날씨
   const getWeather = async () => {
     // 승인 요청
@@ -888,6 +915,21 @@ export default function App() {
           <Text style={styles.temp}>강수량</Text>
           <Text style={styles.description}>{rainfall}</Text>
         </View>
+        <View style={{ flex: 1, padding: 16 }}>
+        <TextInput
+          style={{ height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 16 }}
+          placeholder="지역명을 입력하세요"
+          value={locationName}
+          onChangeText={text => setLocationName(text)}
+        />
+        <Button title="검색" onPress={searchLocation} />
+        {searchLatitude !== '' && searchLongitude !== '' && (
+          <View style={{ marginTop: 16 }}>
+            <Text>위도: {searchLatitude}</Text>
+            <Text>경도: {searchLongitude}</Text>
+        </View>
+      )}
+    </View>
       </ScrollView>
     </View>
   );
