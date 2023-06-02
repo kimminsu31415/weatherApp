@@ -511,17 +511,26 @@ export default function Main() {
   const [ok, setOk] = useState(true);
 
   // 검색 기능
-  const searchLocation = () => {
+  async function searchLocation() {
     const result = locationJson.find(item => item['3단계'] === locationName);
     if (result) {
       const { '위도(초/100)': lat, '경도(초/100)': lon } = result;
       setLatitude(lat);
       setLongitude(lon);
-      const searchUrl = getCurrnetWeatherUrl(lat, lon, "ultraSrt")[0];
+      const searchUrl2 = getCurrnetWeatherUrl(lat, lon, "ultraSrt")[0];
+      console.log("검색 지역뎔ㄷ",searchUrl2)
+      const ultraSrtResponse = await fetch(searchUrl2);
+      const searchUrl5 = await ultraSrtResponse.json();
+      //const searchUrl = extractUltraSrtWeather(searchUrl5);
+      const srcUltraSrtInfo=extractUltraSrtWeather(searchUrl5);
+      //const searchUrl = JSON.stringify(searchUrl3)
+
       // navigation.navigate('Search',{searchUrl});
       // navigation.navigate('Search', [searchUrl]);
-      navigation.navigate('Search')
-      console.log("검색 지역 urllll", searchUrl);
+      // navigation.navigate('Search')
+      navigation.navigate('Search', { srcUltraSrtInfo: srcUltraSrtInfo });
+
+      console.log("검색 지역 urllll", srcUltraSrtInfo);
     } else {
       setLatitude('');
       setLongitude('');
@@ -552,11 +561,11 @@ export default function Main() {
 
     // 초단기 예보 api url
     const ultraSrtUrl = await getCurrnetWeatherUrl(latitude, longitude,"ultraSrt")[0];
-    console.log(ultraSrtUrl);
+    console.log("초단기예보api url",ultraSrtUrl);
     
     const ultraSrtResponse = await fetch(ultraSrtUrl);
     const ultraSrtjson = await ultraSrtResponse.json(); // 응답을 JSON 형태로 파싱
-    console.log("check :", ultraSrtjson);
+    console.log("checkkkkkkkk :", typeof(ultraSrtjson));
     ultraSrtWeatherInfo= extractUltraSrtWeather(ultraSrtjson);
     // setHumidity(ultraSrtWeatherInfo.humidity);
     setSensoryTemp(sensoryTemp(parseFloat(ultraSrtWeatherInfo.temperature),parseFloat(ultraSrtWeatherInfo.humidity)));

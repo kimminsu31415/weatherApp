@@ -1,20 +1,21 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { View, Button } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import extractUltraSrtWeather from './Main';
 
-class Search extends Component {
-  render() {
-    const navigation = this.props.navigation;
-
-    return (
-      <View>
-        <Button
-          title="Test 열기"
-          onPress={() => navigation.navigate('Test')}
-        />
-      </View>
-    );
-  }
-}
+const Search = ({ navigation, route }) => {
+  const { srcUltraSrtInfo } = route.params;
+  console.log("tqtqtq", srcUltraSrtInfo);
+  //console.log("ㅈㅂ", extractUltraSrtWeather(searchUrl));
+  //const ultraSrtWeatherInfo = extractUltraSrtWeather(searchUrl);
+  console.log("온도도돋",srcUltraSrtInfo)
+  return (
+    <View>
+      <Button
+        title="Test 열기"
+        onPress={() => navigation.navigate('Test')}
+      />
+    </View>
+  );
+};
 
 export default Search;
