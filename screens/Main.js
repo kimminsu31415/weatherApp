@@ -318,7 +318,7 @@ function extractPm(grade){
   }
 }
 
-function commentWeather(weatherDict,apiType){
+export function commentWeather(weatherDict,apiType){
   let commentDict={};
   if (apiType=="ultraSrt"){
     commentDict.temperature=weatherDict.temperature+"도";
@@ -410,7 +410,7 @@ function getCurrnetPmUrl(region){
   return `http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty?serviceKey=${serviceKey}&numOfRows=125&pageNo=1&sidoName=${encodedRegion}&ver=1.0`;
 }
 
-function sensoryTemp(temp,humidity){
+export function sensoryTemp(temp,humidity){
   console.log("기온,습도",temp,humidity);
   let Tw=temp*Math.atan(0.151977*Math.sqrt(humidity+8.313659)); //Tw(습구온도)
   Tw += Math.atan(temp+humidity);
@@ -451,7 +451,7 @@ function makeData(currentTmpForTime){
   return values;
 }
 
-function makeSensoryData(tmpList,humidityList){
+export function makeSensoryData(tmpList,humidityList){
   const values = [];
   for(let i=0 ; i<tmpList.length ; i++){
     values.push(sensoryTemp(tmpList[i],humidityList[i]))
@@ -517,18 +517,25 @@ export default function Main() {
       const { '위도(초/100)': lat, '경도(초/100)': lon } = result;
       setLatitude(lat);
       setLongitude(lon);
-      const searchUrl2 = getCurrnetWeatherUrl(lat, lon, "ultraSrt")[0];
-      console.log("검색 지역뎔ㄷ",searchUrl2)
-      const ultraSrtResponse = await fetch(searchUrl2);
-      const searchUrl5 = await ultraSrtResponse.json();
+
+      // 검색 지역 초단기 api 요청
+      const srcUltraSrtUrl = getCurrnetWeatherUrl(lat, lon, "ultraSrt")[0];
+      console.log("검색 지역 초단기 url",srcUltraSrtUrl)
+      const srcUltraSrtResponse = await fetch(srcUltraSrtUrl);
+      const srcUltraSrtJson = await srcUltraSrtResponse.json();
       //const searchUrl = extractUltraSrtWeather(searchUrl5);
-      const srcUltraSrtInfo=extractUltraSrtWeather(searchUrl5);
+      const srcUltraSrtInfo=extractUltraSrtWeather(srcUltraSrtJson);
       //const searchUrl = JSON.stringify(searchUrl3)
 
-      // navigation.navigate('Search',{searchUrl});
-      // navigation.navigate('Search', [searchUrl]);
-      // navigation.navigate('Search')
-      navigation.navigate('Search', { srcUltraSrtInfo: srcUltraSrtInfo });
+      // 검색 지역 단기 api 요청
+      const srcVilageUrl = getCurrnetWeatherUrl(lat, lon,"vilage")[1];
+      console.log("검색 지역 단기 url",srcVilageUrl);
+      const srcVilageResponse = await fetch(srcVilageUrl);
+      const srcVilageJson = await srcVilageResponse.json(); // 응답을 JSON 형태로 파싱
+      const srcVilageInfo=extractVilageWeather(srcVilageJson)[0];
+
+
+      navigation.navigate('Search', { srcUltraSrtInfo: srcUltraSrtInfo, srcVilageInfo: srcVilageInfo });
 
       console.log("검색 지역 urllll", srcUltraSrtInfo);
     } else {
