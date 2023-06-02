@@ -197,7 +197,7 @@ function extractUltraSrtWeather(json){
 
 // 날씨(현재 시간) 예보 코드 -> 값
 // 단기예보 api
-function extractVilageWeather(json){
+export function extractVilageWeather(json){
   const items = json.response.body.items.item;
   let weatherInfo = {};
   let tmpfortime = {}; 
@@ -441,7 +441,7 @@ export function sensoryTemp(temp,humidity){
 //   legend: ["시간대별 기온 비교"] // optional
 // };
 
-function makeData(currentTmpForTime){
+export function makeData(currentTmpForTime){
   const values = [];
   Object.values(currentTmpForTime).forEach(value => {
     values.push(parseInt(value));
@@ -474,6 +474,60 @@ const chartConfig = {
   barPercentage: 0.5,
   useShadowColorFromDataset: false // optional
 };
+
+
+export async function setPm(pmResponse){
+  try {
+    var parseResult = await parseXml(pmResponse);
+    var pmGradeSum10=0; // 미세먼지 등급
+    var pmGradeSum25 = 0; // 초미세먼지 등급
+    var pmValueSum10=0; // 미세먼지 농도
+    var pmValueSum25=0; // 초미세먼지 농도
+    var countGrade10=0;
+    var countGrade25 = 0;
+    var countValue10=0;
+    var countValue25=0;
+    const items = parseResult.response.body[0].items[0].item;
+    for (const item of items) {
+      const pm10Grade = parseInt(item.pm10Grade[0]);
+      const pm25Grade = parseInt(item.pm25Grade[0]);
+      const pm10Value = parseInt(item.pm10Value[0]);
+      const pm25Value = parseInt(item.pm25Value[0]);
+      if (!isNaN(pm10Grade)) {
+        pmGradeSum10 += pm10Grade;
+        countGrade10 += 1;
+      }
+      if (!isNaN(pm25Grade)) {
+        pmGradeSum25 += pm25Grade;
+        countGrade25 += 1;
+      }
+      if (!isNaN(pm10Value)) {
+        pmValueSum10 += pm10Value;
+        countValue10 += 1;
+      }
+      if (!isNaN(pm25Value)) {
+        pmValueSum25 += pm25Value;
+        countValue25 += 1;
+      }
+      // console.log("pm10Grade:", pm10Grade);
+    }
+    grade10=extractPm(Math.round(pmGradeSum10 / countGrade10))
+    grade25=extractPm(Math.round(pmGradeSum25 / countGrade25))
+    value10=Math.round(pmValueSum10 / countValue10)
+    value25=Math.round(pmValueSum25 / countValue25)
+    console.log("pm 성공");
+    return [grade10, grade25, value10, value25];
+    // setPmGrade10(extractPm(Math.round(pmGradeSum10 / countGrade10)));
+    // setPmGrade25(extractPm(Math.round(pmGradeSum25 / countGrade25)));
+    // setPmValue10(Math.round(pmValueSum10 / countValue10));
+    // setPmValue25(Math.round(pmValueSum25 / countValue25));
+    //console.log("미세먼지 농도: ",pmValue10);
+  } catch (err) {
+    console.log("Error:", err); // console에 'Error: [TypeError: Cannot read property 'body' of undefined]' 이렇게 떠도 앱에는 잘 출력됨(왜..?)
+    return 0;
+  }
+}
+
 
 export default function Main() {
   const [city, setCity]=useState("Loading...");
@@ -533,9 +587,18 @@ export default function Main() {
       const srcVilageResponse = await fetch(srcVilageUrl);
       const srcVilageJson = await srcVilageResponse.json(); // 응답을 JSON 형태로 파싱
       const srcVilageInfo=extractVilageWeather(srcVilageJson)[0];
+      const searchTmpForTime=extractVilageWeather(srcVilageJson)[1];
+      const searchWindForTime=extractVilageWeather(srcVilageJson)[2];
+      const searchRainForTime=extractVilageWeather(srcVilageJson)[3];
+      const searchHumidityForTime=extractVilageWeather(srcVilageJson)[4];
 
 
-      navigation.navigate('Search', { srcUltraSrtInfo: srcUltraSrtInfo, srcVilageInfo: srcVilageInfo });
+
+
+      navigation.navigate('Search', { srcUltraSrtInfo : srcUltraSrtInfo, srcVilageInfo : srcVilageInfo,
+                                      searchTmpForTime : searchTmpForTime, searchWindForTime : searchWindForTime,
+                                      searchRainForTime : searchRainForTime, searchHumidityForTime : searchHumidityForTime,
+                                      vilageJson : vilageJson });
 
       console.log("검색 지역 urllll", srcUltraSrtInfo);
     } else {
@@ -626,49 +689,56 @@ export default function Main() {
     console.log("pmurl",pmUrl);
     var pmResponse = await fetch(pmUrl);
     pmResponse=await pmResponse.text();
+    pmlist=await setPm(pmResponse);
+    setPmGrade10(pmlist[0]);
+    setPmGrade25(pmlist[1]);
+    setPmValue10(pmlist[2]);
+    setPmValue25(pmlist[3]);
 
-    try {
-      var parseResult = await parseXml(pmResponse);
-      var pmGradeSum10=0; // 미세먼지 등급
-      var pmGradeSum25 = 0; // 초미세먼지 등급
-      var pmValueSum10=0; // 미세먼지 농도
-      var pmValueSum25=0; // 초미세먼지 농도
-      var countGrade10=0;
-      var countGrade25 = 0;
-      var countValue10=0;
-      var countValue25=0;
-      const items = parseResult.response.body[0].items[0].item;
-      for (const item of items) {
-        const pm10Grade = parseInt(item.pm10Grade[0]);
-        const pm25Grade = parseInt(item.pm25Grade[0]);
-        const pm10Value = parseInt(item.pm10Value[0]);
-        const pm25Value = parseInt(item.pm25Value[0]);
-        if (!isNaN(pm10Grade)) {
-          pmGradeSum10 += pm10Grade;
-          countGrade10 += 1;
-        }
-        if (!isNaN(pm25Grade)) {
-          pmGradeSum25 += pm25Grade;
-          countGrade25 += 1;
-        }
-        if (!isNaN(pm10Value)) {
-          pmValueSum10 += pm10Value;
-          countValue10 += 1;
-        }
-        if (!isNaN(pm25Value)) {
-          pmValueSum25 += pm25Value;
-          countValue25 += 1;
-        }
-        // console.log("pm10Grade:", pm10Grade);
-      }
-      setPmGrade10(extractPm(Math.round(pmGradeSum10 / countGrade10)));
-      setPmGrade25(extractPm(Math.round(pmGradeSum25 / countGrade25)));
-      setPmValue10(Math.round(pmValueSum10 / countValue10));
-      setPmValue25(Math.round(pmValueSum25 / countValue25));
-      console.log("미세먼지 농도: ",pmValue10);
-    } catch (err) {
-      console.log("Error:", err); // console에 'Error: [TypeError: Cannot read property 'body' of undefined]' 이렇게 떠도 앱에는 잘 출력됨(왜..?)
-    }
+    
+
+    // try {
+    //   var parseResult = await parseXml(pmResponse);
+    //   var pmGradeSum10=0; // 미세먼지 등급
+    //   var pmGradeSum25 = 0; // 초미세먼지 등급
+    //   var pmValueSum10=0; // 미세먼지 농도
+    //   var pmValueSum25=0; // 초미세먼지 농도
+    //   var countGrade10=0;
+    //   var countGrade25 = 0;
+    //   var countValue10=0;
+    //   var countValue25=0;
+    //   const items = parseResult.response.body[0].items[0].item;
+    //   for (const item of items) {
+    //     const pm10Grade = parseInt(item.pm10Grade[0]);
+    //     const pm25Grade = parseInt(item.pm25Grade[0]);
+    //     const pm10Value = parseInt(item.pm10Value[0]);
+    //     const pm25Value = parseInt(item.pm25Value[0]);
+    //     if (!isNaN(pm10Grade)) {
+    //       pmGradeSum10 += pm10Grade;
+    //       countGrade10 += 1;
+    //     }
+    //     if (!isNaN(pm25Grade)) {
+    //       pmGradeSum25 += pm25Grade;
+    //       countGrade25 += 1;
+    //     }
+    //     if (!isNaN(pm10Value)) {
+    //       pmValueSum10 += pm10Value;
+    //       countValue10 += 1;
+    //     }
+    //     if (!isNaN(pm25Value)) {
+    //       pmValueSum25 += pm25Value;
+    //       countValue25 += 1;
+    //     }
+    //     // console.log("pm10Grade:", pm10Grade);
+    //   }
+    //   setPmGrade10(extractPm(Math.round(pmGradeSum10 / countGrade10)));
+    //   setPmGrade25(extractPm(Math.round(pmGradeSum25 / countGrade25)));
+    //   setPmValue10(Math.round(pmValueSum10 / countValue10));
+    //   setPmValue25(Math.round(pmValueSum25 / countValue25));
+    //   console.log("미세먼지 농도: ",pmValue10);
+    // } catch (err) {
+    //   console.log("Error:", err); // console에 'Error: [TypeError: Cannot read property 'body' of undefined]' 이렇게 떠도 앱에는 잘 출력됨(왜..?)
+    // }
     
     
 
@@ -812,14 +882,14 @@ export default function Main() {
     compareWeather();
   }, []);
 
-  if (!tempData) {
-    // tempData가 아직 초기화되지 않았을 경우 로딩 중 표시 등을 할 수 있습니다.
-    return (
-      <View>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
+  // if (!tempData) {
+  //   // tempData가 아직 초기화되지 않았을 경우 로딩 중 표시 등을 할 수 있습니다.
+  //   return (
+  //     <View>
+  //       <Text>Loading...</Text>
+  //     </View>
+  //   );
+  // }
 
   return (
     <View style={styles.container}>
