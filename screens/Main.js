@@ -898,22 +898,6 @@ export default function Main() {
         <Text style={styles.cityName}>{city} {subregion} {district}</Text>
       </View>
       
-      {/* {tempData && (
-      <LineChart
-        data={tempData}
-        width={screenWidth}
-        height={220}
-        chartConfig={chartConfig}
-      />
-      )}
-      {windData && (
-        <LineChart
-          data={windData}
-          width={screenWidth}
-          height={220}
-          chartConfig={chartConfig}
-        />
-      )}   */}
       <ScrollView
         pagingEnabled 
         showsHorizontalScrollIndicator={false}
@@ -921,70 +905,21 @@ export default function Main() {
         contentContainerStyle={styles.weather}
       >
         <View style={styles.day}>
-        {isLoading ? (
-        <Text>Loading...</Text> // 로딩 상태 표시
-        ) : (
-          <>{tempData && (
-            <LineChart
-              data={tempData}
-              width={screenWidth}
-              height={220}
-              chartConfig={chartConfig}
-            />)} 
-          </>
-        )}
+
           <Text style={styles.temp}>{TEMP}</Text>
           <Text style={styles.description}>{SKY}</Text>
         </View>
         <View style={styles.day}>
-        {isLoading ? (
-        <Text>Loading...</Text> // 로딩 상태 표시
-      ) : (
-        <>
-          {windData && (
-          <LineChart
-            data={windData}
-            width={screenWidth}
-            height={220}
-            chartConfig={chartConfig}
-          />
-          )}  
-        </>
-      )}
           <Text style={styles.temp}>{lowerTEMP}</Text>
           <Text style={styles.description}>{upperTEMP}</Text>
         </View>
         <View style={styles.day}>
-        {isLoading ? (
-        <Text>Loading...</Text> // 로딩 상태 표시
-      ) : (
-        <>
-          {rainData && (
-          <LineChart
-            data={rainData}
-            width={screenWidth}
-            height={220}
-            chartConfig={chartConfig}
-          />
-          )}  
-        </>
-      )}
+        
           <Text style={styles.temp}>미세먼지 등급 </Text>
           <Text style={styles.description}>{pmGrade10}</Text>
         </View>
         <View style={styles.day}>
-        {isLoading ? (
-        <Text>Loading...</Text> // 로딩 상태 표시
-        ) : (
-          <>{sensoryData && (
-            <LineChart
-              data={sensoryData}
-              width={screenWidth}
-              height={220}
-              chartConfig={chartConfig}
-            />)} 
-          </>
-        )}
+        
           <Text style={styles.temp}>초미세먼지 등급</Text>
           <Text style={styles.description}>{pmGrade25}</Text>
         </View>
