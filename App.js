@@ -19,8 +19,8 @@ export default function App(){
     <View>
       <Text></Text><Text></Text><Text></Text>
       <Button 
-      title="오늘의 날씨를 공유해봐요!"
-      onPress={() => {Share.share({url:`exp://za-chz.kimminsu130.cupidweather.exp.direct:80`})}}
+      title="오늘의 날씨를 공유할까요?"
+      onPress={() => {Share.share({message:"공유메시지 설정"})}}
       />
     </View>
   );
