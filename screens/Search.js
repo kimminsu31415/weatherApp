@@ -35,6 +35,11 @@ const Search = ({ navigation, route }) => {
     const [lowerTEMP, setLowerTemp]=useState();
     const [upperTEMP, setUpperTemp]=useState();
 
+    const [pmGrade10, setPmGrade10]=useState();
+    const [pmGrade25, setPmGrade25]=useState();
+    const [pmValue10, setPmValue10]=useState();
+    const [pmValue25, setPmValue25]=useState();
+
     const [tempData, setTempData]=useState(null);
     const [windData, setWindData]=useState(null);
     const [rainData, setRainData]=useState(null);
@@ -43,7 +48,7 @@ const Search = ({ navigation, route }) => {
 
     const getSearchWeather = async () => {
 
-        const { srcUltraSrtInfo, srcVilageInfo, searchTmpForTime, searchWindForTime, searchRainForTime, searchHumidityForTime } = route.params;
+        const { srcUltraSrtInfo, srcVilageInfo, srcPmlist } = route.params;
         console.log("tqtqtq", srcUltraSrtInfo);
         //console.log("ㅈㅂ", extractUltraSrtWeather(searchUrl));
         //const ultraSrtWeatherInfo = extractUltraSrtWeather(searchUrl);
@@ -58,6 +63,10 @@ const Search = ({ navigation, route }) => {
         setLowerTemp(JSON.stringify(srcVilageInfo.lowerTmp).replace(/\"/gi, ""));
         setUpperTemp(JSON.stringify(srcVilageInfo.upperTmp).replace(/\"/gi, ""));
 
+        setPmGrade10(srcPmlist[0]);
+        setPmGrade25(srcPmlist[1]);
+        setPmValue10(srcPmlist[2]);
+        setPmValue25(srcPmlist[3]);
     }
 
     const compareWeather = async () => {
@@ -230,46 +239,46 @@ const Search = ({ navigation, route }) => {
             <Text style={styles.description}>{upperTEMP}</Text>
         </View>
         <View style={styles.day}>
-        {isLoading ? (
-        <Text>Loading...</Text> // 로딩 상태 표시
-        ) : (
-        <>
-            {rainData && (
-            <LineChart
-            data={rainData}
-            width={screenWidth}
-            height={220}
-            chartConfig={chartConfig}
-            />
-            )}  
-        </>
-        )}
-            {/* <Text style={styles.temp}>미세먼지 등급 </Text>
-            <Text style={styles.description}>{pmGrade10}</Text> */}
+          {isLoading ? (
+          <Text>Loading...</Text> // 로딩 상태 표시
+          ) : (
+          <>
+              {rainData && (
+              <LineChart
+              data={rainData}
+              width={screenWidth}
+              height={220}
+              chartConfig={chartConfig}
+              />
+              )}  
+          </>
+          )}
+          <Text style={styles.temp}>미세먼지 등급 </Text>
+          <Text style={styles.description}>{pmGrade10}</Text>
         </View>
         <View style={styles.day}>
         {isLoading ? (
-        <Text>Loading...</Text> // 로딩 상태 표시
-        ) : (
-            <>{sensoryData && (
-            <LineChart
-                data={sensoryData}
-                width={screenWidth}
-                height={220}
-                chartConfig={chartConfig}
-            />)} 
-            </>
-        )}
-            {/* <Text style={styles.temp}>초미세먼지 등급</Text>
-            <Text style={styles.description}>{pmGrade25}</Text> */}
+          <Text>Loading...</Text> // 로딩 상태 표시
+          ) : (
+              <>{sensoryData && (
+              <LineChart
+                  data={sensoryData}
+                  width={screenWidth}
+                  height={220}
+                  chartConfig={chartConfig}
+              />)} 
+              </>
+          )}
+          <Text style={styles.temp}>초미세먼지 등급</Text>
+          <Text style={styles.description}>{pmGrade25}</Text> 
         </View>
         <View style={styles.day}>
-            {/* <Text style={styles.temp}>미세먼지 농도</Text>
-            <Text style={styles.description}>{pmValue10}</Text> */}
+            <Text style={styles.temp}>미세먼지 농도</Text>
+            <Text style={styles.description}>{pmValue10}</Text>
         </View>
         <View style={styles.day}>
-            {/* <Text style={styles.temp}>초미세먼지 농도</Text>
-            <Text style={styles.description}>{pmValue25}</Text> */}
+            <Text style={styles.temp}>초미세먼지 농도</Text>
+            <Text style={styles.description}>{pmValue25}</Text>
         </View>
         <View style={styles.day}>
             <Text style={styles.temp}>체감온도</Text>

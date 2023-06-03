@@ -79,6 +79,8 @@ function modifyRegion(region){
   return region;
 }
 
+
+
 // 위도, 경도 -> x,y 좌표
 var RE = 6371.00877; // 지구 반경(km)
 var GRID = 5.0; // 격자 간격(km)
@@ -531,7 +533,7 @@ export async function setPm(pmResponse){
 
 export default function Main() {
   const [city, setCity]=useState("Loading...");
-  const [subregion, setSubregion]=useState("Loading...");
+  const [subregion, setSubregion]=useState();
   const [district, setDistrict]=useState();
   const [TEMP, setTemp]=useState();
   const [SKY, setSky]=useState();
@@ -569,8 +571,10 @@ export default function Main() {
     const result = locationJson.find(item => item['3단계'] === locationName);
     if (result) {
       const { '위도(초/100)': lat, '경도(초/100)': lon } = result;
+      const { '1단계' : sido } = result;
       setLatitude(lat);
       setLongitude(lon);
+      sidoForPm=modifyRegion(sido);
 
       // 검색 지역 초단기 api 요청
       const srcUltraSrtUrl = getCurrnetWeatherUrl(lat, lon, "ultraSrt")[0];
@@ -592,13 +596,19 @@ export default function Main() {
       const searchRainForTime=extractVilageWeather(srcVilageJson)[3];
       const searchHumidityForTime=extractVilageWeather(srcVilageJson)[4];
 
-
+      // 검색 지역 미세먼지 api 요청
+      const srcPmUrl = getCurrnetPmUrl(sidoForPm);
+      console.log("검색 지역 pmurl : ",srcPmUrl);
+      var srcPmResponse = await fetch(srcPmUrl);
+      srcPmResponse=await srcPmResponse.text();
+      srcPmlist=await setPm(srcPmResponse);
+      
 
 
       navigation.navigate('Search', { srcUltraSrtInfo : srcUltraSrtInfo, srcVilageInfo : srcVilageInfo,
                                       searchTmpForTime : searchTmpForTime, searchWindForTime : searchWindForTime,
                                       searchRainForTime : searchRainForTime, searchHumidityForTime : searchHumidityForTime,
-                                      vilageJson : vilageJson });
+                                      vilageJson : vilageJson, srcPmlist : srcPmlist });
 
       console.log("검색 지역 urllll", srcUltraSrtInfo);
     } else {
