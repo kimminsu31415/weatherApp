@@ -84,7 +84,7 @@ const Search = ({ navigation, route }) => {
 
         // 검색 지역 초단기예보
         // compareInfo=extractUltraSrtWeather(compareJson); 
-        console.log("검색 지역!! : ", commentWeather(srcUltraSrtInfo,"ultraSrt"));
+        // console.log("검색 지역!! : ", commentWeather(srcUltraSrtInfo,"ultraSrt"));
     
         // getWeather에서 생성한 vilageJson 사용
         // 6,9,12,15,18,21시 기온
