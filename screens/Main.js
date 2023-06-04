@@ -1,17 +1,22 @@
 import * as Location from 'expo-location';
 import { StatusBar } from "expo-status-bar";
 import React, {useEffect, useState} from "react";
-import { View, Text, Dimensions, StyleSheet, ScrollView, TextInput, Button } from 'react-native';
+import { View, Text, Dimensions, StyleSheet, ScrollView, TextInput, Button, Image } from 'react-native';
 import {
   LineChart,
 } from "react-native-chart-kit";
 
 import { useNavigation } from '@react-navigation/native';
+import {LinearGradient} from 'expo-linear-gradient';
+import useCachedResources from "./useCachedResources";
+//npx expo install expo-linear-gradient
+
+const chartHeight = Dimensions.get('window').height;
+const chartWidth = Dimensions.get('window').width;
 
 
-
-// const {width:SCREEN_WIDTH} = Dimensions.get("window");
-//console.log(SCREEN_WIDTH);
+const {width:SCREEN_WIDTH} = Dimensions.get("window");
+console.log(SCREEN_WIDTH);
 
 // api key
 const serviceKey = 'DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D';
@@ -323,7 +328,7 @@ function extractPm(grade){
 export function commentWeather(weatherDict,apiType){
   let commentDict={};
   if (apiType=="ultraSrt"){
-    commentDict.temperature=weatherDict.temperature+"도";
+    commentDict.temperature=weatherDict.temperature+"℃";
     commentDict.wind=weatherDict.wind+"m/s";
     if (weatherDict.rainfall == "강수없음"){
       commentDict.rainfall=weatherDict.rainfall;
@@ -464,7 +469,7 @@ export function makeSensoryData(tmpList,humidityList){
 }
 
 
-const {width:screenWidth} = Dimensions.get("window");
+//const {width:screenWidth} = Dimensions.get("window");
 
 const chartConfig = {
   backgroundGradientFrom: "#1E2923",
@@ -559,6 +564,8 @@ export default function Main() {
   const [locationName, setLocationName] = useState('');
   const [searchLatitude, setLatitude] = useState('');
   const [searchLongitude, setLongitude] = useState('');
+
+  const isLoaded = useCachedResources();
 
   const navigation = useNavigation();
   
@@ -773,8 +780,8 @@ export default function Main() {
       setTimeout(compareWeather, 1000); // 1초 후에 compareWeather 함수 호출
       return;
     }
-    const testUrl = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=60&pageNo=1&base_date=20230601&base_time=1400&nx=60&ny=127&dataType=json`;
-    const testUrl2 = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=290&pageNo=1&base_date=20230601&base_time=2300&nx=60&ny=127&dataType=json`;
+    const testUrl = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=60&pageNo=1&base_date=20230602&base_time=1400&nx=60&ny=127&dataType=json`;
+    const testUrl2 = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=290&pageNo=1&base_date=20230602&base_time=2300&nx=60&ny=127&dataType=json`;
     const compareResponse = await fetch(testUrl);
     const compareJson = await compareResponse.json();
     const searchResponse = await fetch(testUrl2);
@@ -892,111 +899,776 @@ export default function Main() {
     compareWeather();
   }, []);
 
-  // if (!tempData) {
-  //   // tempData가 아직 초기화되지 않았을 경우 로딩 중 표시 등을 할 수 있습니다.
-  //   return (
-  //     <View>
-  //       <Text>Loading...</Text>
-  //     </View>
-  //   );
-  // }
+  //export default timeTable;
+  if (!tempData) {
+    // tempData가 아직 초기화되지 않았을 경우 로딩 중 표시 등을 할 수 있습니다.
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
 
   return (
-    <View style={styles.container}>
+   
+      <LinearGradient colors={['#2980B9', '#6DD5FA',]} start={[0.1, 0.2]} style={styles.container}>
       <StatusBar style="light"></StatusBar>
-      <View style={styles.city}>
-        <Text style={styles.cityName}>{city} {subregion} {district}</Text>
-      </View>
+
+
+
+
+{/* 현재날짜요일시간 */}
+<Text style={styles.date}>5월 31일 수요일</Text>
+<View style={styles.search}>
+<View style={styles.row}>
+
+  {/* 검색창 */}
+<TextInput
+        style={{ height: 25, width: 250, borderColor: '#455A64',borderRadius: 10, borderWidth: 1, paddingLeft: 5, marginBottom: 20, backgroundColor:'rgba(30, 100, 200, 0.1)', fontSize: 14,}}
+        placeholder="지역명을 입력하세요"
+
+        value={locationName}
+        onChangeText={text => setLocationName(text)}
+      />
       
+      <Button title="검색" onPress={searchLocation} />
+      </View>
+     
+      {searchLatitude !== '' && searchLongitude !== '' && (
+        <View style={{ marginTop: 16 }}>
+          <Text>위도: {searchLatitude}</Text>
+          <Text>경도: {searchLongitude}</Text>
+      </View>
+    )}
+{/* <FilterProd ucts /> */}
+</View>  
+
+
+
+
+{/* 스크롤 적용구간 */}
+
+    <View style={styles.weather}>
+     
       <ScrollView
-        pagingEnabled 
+        pagingEnabled={false}
         showsHorizontalScrollIndicator={false}
-        horizontal 
+        horizontal ={false}
         contentContainerStyle={styles.weather}
       >
-        <View style={styles.day}>
 
-          <Text style={styles.temp}>{TEMP}</Text>
+        {/* 현재위치 기온 & 코멘트 */}
+
+          <View style={styles.row}>
+          <View style={styles.Myloca}>
+        <Text style={styles.cityName}>{city} {subregion} {district}</Text>
+        <Text style={styles.temp}>{TEMP}</Text>
           <Text style={styles.description}>{SKY}</Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.temp}>{lowerTEMP}</Text>
-          <Text style={styles.description}>{upperTEMP}</Text>
-        </View>
-        <View style={styles.day}>
-        
-          <Text style={styles.temp}>미세먼지 등급 </Text>
-          <Text style={styles.description}>{pmGrade10}</Text>
-        </View>
-        <View style={styles.day}>
-        
-          <Text style={styles.temp}>초미세먼지 등급</Text>
-          <Text style={styles.description}>{pmGrade25}</Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.temp}>미세먼지 농도</Text>
-          <Text style={styles.description}>{pmValue10}</Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.temp}>초미세먼지 농도</Text>
-          <Text style={styles.description}>{pmValue25}</Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.temp}>체감온도</Text>
-          <Text style={styles.description}>{sensoryTEMP}</Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.temp}>풍속</Text>
-          <Text style={styles.description}>{wind}</Text>
-        </View>
-        <View style={styles.day}>
-          <Text style={styles.temp}>강수량</Text>
-          <Text style={styles.description}>{rainfall}</Text>
-        </View>
-        <View style={{ flex: 1, padding: 16 }}>
-        <TextInput
-          style={{ height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 16 }}
-          placeholder="지역명을 입력하세요"
-          value={locationName}
-          onChangeText={text => setLocationName(text)}
-        />
-        <Button title="검색" onPress={searchLocation} />
-    </View>
-      </ScrollView>
-    </View>
-  );
-}
+          <Text style={styles.message}>산책하기 좋은 날씨에요</Text>
+          </View>
+ 
+          
+     {/* 캐릭터 이미지 */}
 
-const styles = StyleSheet.create({
+          <View style={styles.image}>
+          <Image
+      style={styles.image}
+      source={require('./src/assets/image/Deer.png')}
+      resizeMode={"contain"}
+        />
+          </View>
+          </View>
+          
+          
+
+         {/* 4개 아이콘 데이터 */}
+        
+        <View style={styles.degree}>
+        
+      <View style={styles.column}>
+      <Text  style={styles.dataname}>풍속</Text>
+        <View style={styles.circle}>
+        <Image
+      style={styles.circlePad}
+      source={require('./src/assets/image/wether-icon/wind.png')}
+      resizeMode={"contain"}
+        />
+        </View>
+        <Text style={styles.datavalue}>{wind}</Text >
+        </View>
+
+        <View style={styles.column}>
+      <Text style={styles.dataname}>강수량</Text>
+        <View style={styles.circle}>
+        <Image
+      style={styles.circlePad}
+      source={require('./src/assets/image/wether-icon/rain-umbrella.png')}
+      resizeMode={"contain"}
+        />
+        </View>
+        <Text style={styles.datavalue}>{rainfall}</Text>
+        </View>
+
+        <View style={styles.column}>
+      <Text style={styles.dataname}>체감온도</Text>
+        <View style={styles.circle}>
+        <Image
+      style={styles.circlePad}
+      source={require('./src/assets/image/wether-icon/humidity.png')}
+      resizeMode={"contain"}
+        />
+        </View>
+        <Text style={styles.datavalue}>{sensoryTEMP}</Text>
+        </View>
+
+        <View style={styles.column}>
+      <Text style={styles.dataname}>최고/최저</Text>
+        <View style={styles.circle}>
+        <Image
+      style={styles.circlePad}
+      source={require('./src/assets/image/wether-icon/sun.png')}
+      resizeMode={"contain"}
+        />
+        </View>
+        <Text style={styles.datavalue}>{upperTEMP}/{lowerTEMP}</Text>
+        </View>
+
+        </View>
+        
+        
+    
+     
+     {/* 날씨 공유 메세지 */}
+      {isLoading ? (
+      <Text>Loading...</Text> // 로딩 상태 표시
+      ) : (
+        <>
+        <View style={styles.card}>
+        <View style={styles.column}>
+        <Text style={styles.ment}> 좋아하는 사람에게 날씨를 공유해 보는 건 어떨까요?</Text> 
+        <View style={styles.rowlable}>
+        <Text style={styles.ment}> 당신의 마음이 전해질 지도 몰라요~</Text> 
+        <Image
+      style={styles.miniIcon}
+      source={require('./src/assets/image/share.png')}
+      resizeMode={"contain"}
+        />
+        </View>
+        </View>
+        </View>
+        </>
+      )}
+
+
+      
+      {/*  미세 먼지  */}
+      <View style={styles.dustPad}>
+      <Image
+      style={styles.dustIcon}
+      source={require('./src/assets/image/wether-icon/dust.png')}
+      resizeMode={"contain"}
+        />
+        <View style={styles.dustData}>
+        <View styel={styles.column}>
+        <Text style={styles.pmGrade}> 미세먼지 </Text> 
+        <Text style={styles.pmGrade}> {pmGrade10}</Text> 
+          </View>
+          <View styel={styles.column}>
+          <Text style={styles.pm}> 미세먼지   {pmValue10}</Text> 
+          <Text style={styles.pm}> 초 미세먼지   {pmValue25}</Text> 
+          </View>
+        </View>
+      </View>
+
+
+      {/* 즐겨찾기 */}
+         <View style={styles.bookmarkPad}>
+         <View style={styles.myplace}>
+         <View style={styles.rowlable}>
+         <Image
+      style={styles.miniIcon}
+      source={require('./src/assets/image/wether-icon/bookmark.png')}
+      resizeMode={"contain"}
+        />
+         <Text style={styles.ment}> MyPlace                                                        </Text>  
+         {/* 플러스 버튼과 간격두기 위한 죽음의 띄어쓰기.. */}
+         <Image
+      style={styles.miniIcon}
+      source={require('./src/assets/image/plus.png')}
+      resizeMode={"contain"}
+        />
+         </View>
+
+         </View>
+         <View style={styles.location}>
+         
+         <Text style={styles.ment}> 아라동 </Text> 
+         <Text style={styles.ment}> 일도이동 </Text> 
+         </View>
+         </View>
+         
+
+
+
+        <View style={styles.week}>
+        <View style={styles.weekly}>
+        <Text style={styles.dayOfweek}>
+            오늘
+          </Text>
+        <View style={styles.hum}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.icon}></View>
+        <Text style={styles.high}>{lowerTEMP}</Text>
+        <Text style={styles.low}>{lowerTEMP}</Text>
+       </View>
+   
+       <View style={styles.weekly}>
+        <Text style={styles.dayOfweek}>
+            오늘
+          </Text>
+        <View style={styles.hum}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.high}></View>
+        <View style={styles.low}></View>
+       </View>
+  
+       <View style={styles.weekly}>
+        <Text style={styles.dayOfweek}>
+            오늘
+          </Text>
+        <View style={styles.hum}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.high}></View>
+        <View style={styles.low}></View>
+       </View>
+  
+       <View style={styles.weekly}>
+        <Text style={styles.dayOfweek}>
+            오늘
+          </Text>
+        <View style={styles.hum}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.high}></View>
+        <View style={styles.low}></View>
+       </View>
+  
+       <View style={styles.weekly}>
+        <Text style={styles.dayOfweek}>
+            오늘
+          </Text>
+        <View style={styles.hum}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.high}></View>
+        <View style={styles.low}></View>
+       </View>
+  
+       <View style={styles.weekly}>
+        <Text style={styles.dayOfweek}>
+            오늘
+          </Text>
+        <View style={styles.hum}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.high}></View>
+        <View style={styles.low}></View>
+       </View>
+  
+       <View style={styles.weekly}>
+        <Text style={styles.dayOfweek}>
+            오늘
+          </Text>
+        <View style={styles.hum}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.high}></View>
+        <View style={styles.low}></View>
+       </View>
+        
+        </View>
+        </ScrollView>
+        </View>
+        </LinearGradient>
+  
+  );
+  }
+  
+  
+  
+  
+  const styles = StyleSheet.create({
   container:{
-    flex:1, 
-    backgroundColor:"green"
+    paddingTop : 10,
+    justifyContent: "flex-start",
+    backgroundColor: "2980b9"
+    //height:1800
+  },
+  date:{
+    //flexDirection:"row",
+    paddingTop:10,
+    marginTop: 30,
+    marginLeft: 20,
+    marginBottom: 5,
+    width: 350,
+    height:30,
+    textAlign:"center",
+    alignItems: "center",
+    color: "white",
+    // backgroundColor:"#E6E6FA",
+    //justifyContent:"space-evenly",
+    fontSize: 14
+  },
+  search:{
+    //flexDirection:"row",
+    justifyContent: "flex-start",
+    marginTop: 5,
+    width:SCREEN_WIDTH,
+    height:40,
+    textAlign:"center",
+    alignItems: "center",
+    // backgroundColor:"skyblue",
+    //justifyContent:"space-evenly",
+    fontSize:20
+  
   },
   city:{
-    flex:1,
-    //backgroundColor:"blue",
-    justifyContent:"center",
+    width: 180,
+    //height:18,
+    //marginLeft:20,
+    height: 170,
+    // backgroundColor:"skyblue",
+    justifyContent:"flex-start",
+    textAlign: "center",
     alignItems:"center"
   },
   cityName:{
-    fontSize:60,
+    width: 180,
+    marginTop: 10,
+    marginLeft: 20,
+    fontSize:26,
     fontWeight:"500"
   },
   weather:{
-    //flex:3,
-    //backgroundColor:"blue"
+    width : SCREEN_WIDTH,
+    //height : 1000,
+    justifyContent:"space-between",
+    // backgroundColor:"blue",
+    alignItems: "flex-start",
   },
   day:{
-    width:screenWidth,
+    width:SCREEN_WIDTH,
+    height: 600,
+    flexDirection:"column",
+    //  backgroundColor:"#AFEEEE",
     //flex:1,
     //backgroundColor:"teal",
-    alignItems:"center"
+    alignItems:"flex-start",
+    marginTop:10
+  },
+  
+  row:{
+    //backgroundColor:"#4169e1",
+    justifyContent:"center",
+    flexDirection:"row",
+    height: 200,
+    width : 390
+  },
+  column:{
+    paddingBottom: 5,
+    justifyContent:"flex-start",
+    flexDirection:"column"
+  },
+  rowlable:{
+    flexDirection:"row"
+  },
+  Myloca:{
+    paddingLeft: 10,
+    width : 180,
+    height : 210,
+    marginTop : 20,
+    marinLeft: 10,
+    marginRight: 5,
+    //justifyContent:"flex-start",
+    alignItems: "center",
+    textAlign: "center",
+    // backgroundColor:"skyblue",
+    flexDirection:"column",
   },
   temp:{
-    marginTop:30,
-    fontSize:100,
+    width : 180,
+    height : 80,
+    justifyContent:"flex-start",
+    alignItems: "center",
+    textAlign: "center",
+    // backgroundColor:"skyblue",
+    flexDirection:"column",
+    marginLeft:20,
+    //marginTop:10,
+    fontSize:70
+  },
+  image:{
+    width: 180,
+    height: 210,
+    justifyContent:"flex-end",
+    // backgroundColor:"#000080",
+    marginLeft:5,
+    marginTop:10
   },
   description:{
-    fontSize:70,
+    width:170,
+    height:40,
+    marginTop:5,
+    marginLeft:20,
+    textAlign:"center",
+    // backgroundColor:"#00BFFF",
+    //justifyContent:"center",
+    fontSize:40
+    
+  },
+  
+  circle: {
+    width: 45,
+    height: 45,
+    borderRadius: 100 / 2,
+    backgroundColor: 'rgba(30, 100, 200, 0.1)'
+  },
+  circlePad: {
+    width: 45,
+    height: 45,
+    // backgroundColor: 'rgba(30, 100, 200, 0.1)'
+  },
+  datavalue: {
+    width: 45,
+    height: 12,
+    fontFamily: "SUITE-Medium",
+    fontSize: 10,
+    textAlign:"center",
+    marginTop : 3,
+    //backgroundColor: "blue"
+  },
+  dataname: {
+    width: 45,
+    height: 12,
+    fontFamily: "SUITE-Medium",
+    fontSize : 10,
+    textAlign:"center",
+    marginBottom : 3
+
+    //backgroundColor: "blue"
+  },
+ 
+  
+  degree:{
+    flexDirection:"row",
+    width: 370,
+    height: 100,
+    marginTop: 30,
+    marginLeft:10,
+    textAlign:"center",
+    alignItems: "center",
+    // backgroundColor:"#00BFFF",
+    justifyContent:"space-evenly",
+    fontSize:40
+    
+  },
+
+  
+  message:{
+    //flexDirection:"row",
+    marginTop: 10,
+    marginLeft: 20,
+   // width: 350,
+    height:25,
+    textAlign:"center",
+    alignItems: "center",
+    // backgroundColor:"#E6E6FA",
+    //justifyContent:"space-evenly",
+    fontFamily: "SUITE-Medium",
+    fontSize:16
+  
+  },
+
+  
+  miniIcon:{
+    // backgroundColor: "white",
+    width: 14,
+    height: 16,
+    marginTop: 4,
+    alignItems: "center",
+  },
+
+  card:{
+    marginTop: 12,
+    marginLeft: 20,
+    marginBottom: 15,
+    paddingLeft: 10,
+    paddingTop: 3,
+    width: 350,
+    height: 70,
+    textAlign:"left",
+    alignItems: "center",
+    flexDirection:"row",
+    //justifyContent:"space-evenly",
+    fontSize:16,
+    backgroundColor: 'rgba(0, 100, 150, 0.1)',
+    borderColor: 'rgba(0, 50, 0, 0.2)',
+    borderWidth: 2,
+    borderRadius: 15,
+  },
+
+  ment:{
+    // backgroundColor: "white",
+    fontFamily: "SUITE-Medium",
+    // width: 350,
+    height: 18,
+    margin: 2,
+    textAlign:"left",
+    //justifyContent:"space-evenly",
+    fontSize:16,
+  },
+
+
+  dustPad:{
+    marginTop: 10,
+    backgroundColor:'rgba(0, 50, 0, 0.2)',
+    justifyContent:"center",
+    flexDirection:"row",
+    height: 110,
+    width : 390
+  },
+  
+  dustData:{
+    marginTop: 12,
+    marginLeft: 10,
+    paddingTop: 5,
+    width: 190,
+    height:80,
+    flexDirection:"row",
+    textAlign:"left",
+    alignItems: "center",
+    //backgroundColor:"#E6E6FA",
+    justifyContent:"flex-start",
+    fontSize:16
+  },
+  
+  dustIcon:{
+    marginTop: 15,
+    //marginLeft: 20,
+    width: 110,
+    height:80,
+    alignItems: "center",
+    //backgroundColor:"#E6E6FA",
+    //justifyContent:"space-evenly",
+    fontSize:16
+  },
+ 
+  pmGrade:{
+    //flexDirection:"row",
+    marginTop: 5,
+    marginLeft: 5,
+   // width: 350,
+    height:20,
+    textAlign:"center",
+    alignItems: "center",
+     //backgroundColor:"#E6E6FA",
+    //justifyContent:"space-evenly",
+    fontFamily: "SUITE-Medium",
+    fontSize:16
+  
+  },
+
+  pm:{
+    //flexDirection:"row",
+    marginTop: 10,
+    marginLeft: 20,
+   // width: 350,
+    height:20,
+    textAlign:"center",
+    alignItems: "center",
+   //backgroundColor:"#E6E6FA",
+    //justifyContent:"space-evenly",
+    fontFamily: "SUITE-Medium",
+    color: "#223254",
+    fontSize: 13
+  
+  },
+
+  
+
+  myplace:{
+    //backgroundColor: "white",
+    width: 300,
+    flexDirection:"row",
+    marginTop: 12,
+    //marginBottom: 5,
+    borderBottomColor: 'rgba(0, 50, 100, 0.1)',
+    borderBottomWidth: 1,
+    paddingBottom: 2,
+    height: 26,
+    textAlign:"left",
+    //alignItems: "center",
+    justifyContent:"flex-start",
+    fontSize:16,
+    // borderColor: 'rgba(0, 50, 0, 0.2)',
+    // borderWidth: 2,
+    // borderRadius: 15,
+  },
+  
+  bookmarkPad:{
+    paddingLeft: 10,
+    paddingBottom: 10,
+    flexDirection:"column",
+    justifyContent:"flex-start",
+    width: 350,
+    //height: 150,
+    marginTop: 20,
+    marginLeft:20,
+    textAlign:"left",
+    //alignItems: "center",
+    backgroundColor:'rgba(051, 153, 204, 0.3)',
+    fontSize:40
+  
+  },
+
+  location:{
+    paddingLeft: 10,
+    flexDirection:"column",
+    width: 330,
+    height: 130,
+    //marginTop: 40,
+    //marginLeft:20,
+    textAlign:"left",
+    //alignItems: "center",
+    backgroundColor:'rgba(051, 153, 204, 0.3)',
+    justifyContent:"space-evenly",
+    fontSize:40
+  },
+
+  week:{
+    width:SCREEN_WIDTH,
+    flexDirection:"column",
+  
+    height: 700,
+    marginTop: 10,
+  
+    textAlign:"center",
+    alignItems: "flex-start",
+    //backgroundColor:"#00BFFF",
+    justifyContent:"flex-start",
+    fontSize:40,
+    marginBttom: 100
+    
+  },
+  dayOfweek:{
+   
+    flexDirection:"row",
+    width: 100,
+    height: 20,
+    marginTop: 17,
+    marginLeft : 5,
+    textAlign:"left",
+    alignItems: "flex-start",
+    backgroundColor:"#4169e1",
+    //justifyContent:"space-evenly",
+    fontSize:16
+    
+  },
+  weekly:{
+   
+    flexDirection:"row",
+    width: 360,
+    height: 50,
+    marginLeft : 15,
+    textAlign:"center",
+    alignItems: "flex-start",
+    backgroundColor:"#4169e1",
+    justifyContent:"space-evenly",
+    fontSize:20
   }
-})
+
+  // table:{
+  //   flexDirection:"row",
+  //   width: 900,
+  //   height: 80,
+  //   marginTop: 5,
+  //   textAlign:"center",
+  //   alignItems: "flex-start",
+  //   backgroundColor:"#00BFFF",
+  //   justifyContent:"space-evenly",
+  //   fontSize:40
+  // },
+  // chart:{
+  //   width:SCREEN_WIDTH*2,
+  //   height: 175,
+  //   flexDirection:"column",
+  //   backgroundColor:"#00BFFF",
+  //   //flex:1,
+  //   //backgroundColor:"teal",
+  //   alignItems:"flex-start",
+  //   //marginTop:10
+  // },
+  // time:{
+  //   //flexDirection:"row",
+  //   marginTop: 15,
+  //   width: 40,
+  //   height:18,
+  //   textAlign:"center",
+  //   alignItems: "center",
+  //   backgroundColor:"#E6E6FA",
+  //   //justifyContent:"space-evenly",
+  //   fontSize:10
+    
+  // },
+  // icon:{
+  //   //flexDirection:"row",
+  //   marginTop:5,
+  //   width: 40,
+  //   height:40,
+  //   textAlign:"center",
+  //   alignItems: "center",
+  //   backgroundColor:"#E6E6FA",
+  //   //justifyContent:"space-evenly",
+  //   fontSize:20
+    
+  // },
+  // hum:{
+  //   //flexDirection:"row",
+  //   marginTop:5,
+  //   width: 60,
+  //   height:40,
+  //   textAlign:"left",
+  //   alignItems: "center",
+  //   backgroundColor:"#6495ED",
+  //   //justifyContent:"space-evenly",
+  //   fontSize:20
+  // },
+  // high:{
+  //   //flexDirection:"row",
+  //   marginTop:5,
+  //   width: 40,
+  //   height:40,
+  //   textAlign:"center",
+  //   alignItems: "center",
+  //   backgroundColor:"#20B2AA",
+  //   //justifyContent:"space-evenly",
+  //   fontSize:20
+  // },
+  // low:{
+  //   //flexDirection:"row",
+  //   marginTop:5,
+  //   width: 40,
+  //   height:40,
+  //   textAlign:"center",
+  //   alignItems: "center",
+  //   backgroundColor:"#66CDAA",
+  //   //justifyContent:"space-evenly",
+  //   fontSize:20,
+  // },
+
+  }
+  ) 
+  
