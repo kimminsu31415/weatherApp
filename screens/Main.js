@@ -898,7 +898,7 @@ export default function Main() {
 
 
   const getAdvice = async () => {
-    const api_key = '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';
+    const api_key = '';
     // const keywords = '커피';
     const messages = [
       { role: 'system', content: 'You are a helpful assistant.' },
