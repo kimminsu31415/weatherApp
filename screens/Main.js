@@ -6,6 +6,8 @@ import {
   LineChart,
 } from "react-native-chart-kit";
 
+// import axios from 'axios';
+
 import { useNavigation } from '@react-navigation/native';
 import {LinearGradient} from 'expo-linear-gradient';
 import useCachedResources from "./useCachedResources";
@@ -552,7 +554,7 @@ export default function Main() {
   const [pmGrade25, setPmGrade25]=useState();
   const [pmValue10, setPmValue10]=useState();
   const [pmValue25, setPmValue25]=useState();
-  const [tempData, setTempData]=useState(null);
+  // const [tempData, setTempData]=useState(null);
   const [windData, setWindData]=useState(null);
   const [rainData, setRainData]=useState(null);
   const [sensoryData, setSensoryData]=useState(null);
@@ -568,6 +570,8 @@ export default function Main() {
   const isLoaded = useCachedResources();
 
   const navigation = useNavigation();
+
+  const [advice, setAdvice]=useState();
   
   // const [location, setLocation] = useState();
   // const [days, setDays]=useState([]);
@@ -774,140 +778,178 @@ export default function Main() {
   };
 
   // 날씨 비교 분석
-  const compareWeather = async () => {
-    if (!vilageJson) {
-      // vilageJson이 업데이트되지 않은 경우, 잠시 후에 다시 호출
-      setTimeout(compareWeather, 1000); // 1초 후에 compareWeather 함수 호출
-      return;
+  // const compareWeather = async () => {
+  //   if (!vilageJson) {
+  //     // vilageJson이 업데이트되지 않은 경우, 잠시 후에 다시 호출
+  //     setTimeout(compareWeather, 1000); // 1초 후에 compareWeather 함수 호출
+  //     return;
+  //   }
+  //   const testUrl = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=60&pageNo=1&base_date=20230603&base_time=1400&nx=60&ny=127&dataType=json`;
+  //   const testUrl2 = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=290&pageNo=1&base_date=20230603&base_time=2300&nx=60&ny=127&dataType=json`;
+  //   const compareResponse = await fetch(testUrl);
+  //   const compareJson = await compareResponse.json();
+  //   const searchResponse = await fetch(testUrl2);
+  //   const searchJson = await searchResponse.json();
+
+  //   // 검색 지역 초단기예보
+  //   compareInfo=extractUltraSrtWeather(compareJson); 
+  //   console.log("검색 지역 : ", commentWeather(compareInfo,"ultraSrt"));
+
+  //   // getWeather에서 생성한 vilageJson 사용
+  //   // 6,9,12,15,18,21시 기온
+  //   currentTmpForTime=extractVilageWeather(vilageJson)[1]; 
+  //   searchTmpForTime=extractVilageWeather(searchJson)[1];
+  //   const currentTmpList=makeData(currentTmpForTime);
+  //   const searchTmpList=makeData(searchTmpForTime);
+  //   //console.log("검색 지역 기온 : ", searchTmpForTime);
+
+  //   // 6,9,12,15,18,21시 풍속
+  //   currentWindForTime=extractVilageWeather(vilageJson)[2]; 
+  //   searchWindForTime=extractVilageWeather(searchJson)[2];
+
+  //   // 6,9,12,15,18,21시 강수량
+  //   currentRainForTime=extractVilageWeather(vilageJson)[3];
+  //   searchRainForTime=extractVilageWeather(searchJson)[3];
+
+  //   // 6,9,12,15,18,21시 습도
+  //   currentHumidityForTime=extractVilageWeather(vilageJson)[4];
+  //   searchHumidityForTime=extractVilageWeather(searchJson)[4];
+  //   const currentHumidityList=makeData(currentHumidityForTime);
+  //   const searchHumidityList=makeData(searchHumidityForTime);
+
+  //   const currentSensoryData = makeSensoryData(currentTmpList,currentHumidityList);
+  //   const searchSensoryData = makeSensoryData(searchTmpList,searchHumidityList);
+
+  //   const dataForTmp = {
+  //     labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
+  //     datasets : [
+  //       {
+  //         data: makeData(currentTmpForTime),
+  //         color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
+  //         strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
+  //       },
+  //       {
+  //         data: makeData(searchTmpForTime),
+  //         color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
+  //         strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
+  //       }
+  //     ],
+  //     legend: ["시간대별 기온 비교"] // optional
+  //   };
+
+  //   const dataForWind = {
+  //     labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
+  //     datasets : [
+  //       {
+  //         data: makeData(currentWindForTime),
+  //         color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
+  //         strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
+  //       },
+  //       {
+  //         data: makeData(searchWindForTime),
+  //         color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
+  //         strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
+  //       }
+  //     ],
+  //     legend: ["시간대별 풍속 비교"] // optional
+  //   };
+
+  //   const dataForRain = {
+  //     labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
+  //     datasets : [
+  //       {
+  //         data: makeData(currentRainForTime),
+  //         color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
+  //         strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
+  //       },
+  //       {
+  //         data: makeData(searchRainForTime),
+  //         color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
+  //         strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
+  //       }
+  //     ],
+  //     legend: ["시간대별 강수량 비교"] // optional
+  //   };
+
+  //   const dataForSensory = {
+  //     labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
+  //     datasets : [
+  //       {
+  //         data: currentSensoryData,
+  //         color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
+  //         strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
+  //       },
+  //       {
+  //         data: searchSensoryData,
+  //         color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
+  //         strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
+  //       }
+  //     ],
+  //     legend: ["시간대별 체감온도 비교"] // optional
+  //   };
+
+  //   // console.log("data 확인",data.datasets[0].data);
+  //   setTempData(dataForTmp);
+  //   setWindData(dataForWind);
+  //   setRainData(dataForRain);
+  //   setSensoryData(dataForSensory);
+  //   setIsLoading(false); // 데이터 로딩 완료 상태 설정
+  // };
+
+
+  const getAdvice = async () => {
+    const api_key = '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';
+    // const keywords = '커피';
+    const messages = [
+      { role: 'system', content: 'You are a helpful assistant.' },
+      { role: 'user', content: '기온'+ TEMP +'도, 미세먼지 '+pmGrade10+'인 날씨에 대한 재밌는 한마디 부탁해' },
+    ];
+    console.log({TEMP});
+    const config = {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${api_key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        temperature: 0.5,
+        n: 1,
+        messages: messages,
+      }),
+    };
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', config);
+      const data = await response.json();
+      const choices = data.choices;
+      let resultText = '';
+      choices.forEach((choice, index) => {
+        resultText += `${choice.message.content}\n`;
+      });
+      console.log(resultText);
+      setAdvice(resultText);
+    } catch (error) {
+      console.error(error);
     }
-    const testUrl = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=60&pageNo=1&base_date=20230602&base_time=1400&nx=60&ny=127&dataType=json`;
-    const testUrl2 = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=DHAcdCIG92vecEcQDukq%2B%2Fn8eWJtPZ9jKZ3isc%2FWrsnaFK1ZMGLQraTGzmMhDIQLj%2FZCUSkvmj1BgKChWFkbjw%3D%3D&numOfRows=290&pageNo=1&base_date=20230602&base_time=2300&nx=60&ny=127&dataType=json`;
-    const compareResponse = await fetch(testUrl);
-    const compareJson = await compareResponse.json();
-    const searchResponse = await fetch(testUrl2);
-    const searchJson = await searchResponse.json();
-
-    // 검색 지역 초단기예보
-    compareInfo=extractUltraSrtWeather(compareJson); 
-    console.log("검색 지역 : ", commentWeather(compareInfo,"ultraSrt"));
-
-    // getWeather에서 생성한 vilageJson 사용
-    // 6,9,12,15,18,21시 기온
-    currentTmpForTime=extractVilageWeather(vilageJson)[1]; 
-    searchTmpForTime=extractVilageWeather(searchJson)[1];
-    const currentTmpList=makeData(currentTmpForTime);
-    const searchTmpList=makeData(searchTmpForTime);
-    //console.log("검색 지역 기온 : ", searchTmpForTime);
-
-    // 6,9,12,15,18,21시 풍속
-    currentWindForTime=extractVilageWeather(vilageJson)[2]; 
-    searchWindForTime=extractVilageWeather(searchJson)[2];
-
-    // 6,9,12,15,18,21시 강수량
-    currentRainForTime=extractVilageWeather(vilageJson)[3];
-    searchRainForTime=extractVilageWeather(searchJson)[3];
-
-    // 6,9,12,15,18,21시 습도
-    currentHumidityForTime=extractVilageWeather(vilageJson)[4];
-    searchHumidityForTime=extractVilageWeather(searchJson)[4];
-    const currentHumidityList=makeData(currentHumidityForTime);
-    const searchHumidityList=makeData(searchHumidityForTime);
-
-    const currentSensoryData = makeSensoryData(currentTmpList,currentHumidityList);
-    const searchSensoryData = makeSensoryData(searchTmpList,searchHumidityList);
-
-    const dataForTmp = {
-      labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
-      datasets : [
-        {
-          data: makeData(currentTmpForTime),
-          color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
-          strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
-        },
-        {
-          data: makeData(searchTmpForTime),
-          color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
-          strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
-        }
-      ],
-      legend: ["시간대별 기온 비교"] // optional
-    };
-
-    const dataForWind = {
-      labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
-      datasets : [
-        {
-          data: makeData(currentWindForTime),
-          color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
-          strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
-        },
-        {
-          data: makeData(searchWindForTime),
-          color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
-          strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
-        }
-      ],
-      legend: ["시간대별 풍속 비교"] // optional
-    };
-
-    const dataForRain = {
-      labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
-      datasets : [
-        {
-          data: makeData(currentRainForTime),
-          color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
-          strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
-        },
-        {
-          data: makeData(searchRainForTime),
-          color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
-          strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
-        }
-      ],
-      legend: ["시간대별 강수량 비교"] // optional
-    };
-
-    const dataForSensory = {
-      labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
-      datasets : [
-        {
-          data: currentSensoryData,
-          color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // 첫 번째 데이터 세트의 색상
-          strokeWidth: 2 // 첫 번째 데이터 세트의 선 두께
-        },
-        {
-          data: searchSensoryData,
-          color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // 두 번째 데이터 세트의 색상
-          strokeWidth: 2 // 두 번째 데이터 세트의 선 두께
-        }
-      ],
-      legend: ["시간대별 체감온도 비교"] // optional
-    };
-
-    // console.log("data 확인",data.datasets[0].data);
-    setTempData(dataForTmp);
-    setWindData(dataForWind);
-    setRainData(dataForRain);
-    setSensoryData(dataForSensory);
-    setIsLoading(false); // 데이터 로딩 완료 상태 설정
-
-  
   };
+
 
   useEffect(() => {
     getWeather();
-    compareWeather();
+    // compareWeather();
+    getAdvice();
   }, []);
 
   //export default timeTable;
-  if (!tempData) {
-    // tempData가 아직 초기화되지 않았을 경우 로딩 중 표시 등을 할 수 있습니다.
-    return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
+  // if (!tempData) {
+  //   // tempData가 아직 초기화되지 않았을 경우 로딩 중 표시 등을 할 수 있습니다.
+  //   return (
+  //     <View style={styles.container}>
+  //       <Text>Loading...</Text>
+  //     </View>
+  //   );
+  // }
 
 
   return (
@@ -935,12 +977,6 @@ export default function Main() {
       <Button title="검색" onPress={searchLocation} />
       </View>
      
-      {searchLatitude !== '' && searchLongitude !== '' && (
-        <View style={{ marginTop: 16 }}>
-          <Text>위도: {searchLatitude}</Text>
-          <Text>경도: {searchLongitude}</Text>
-      </View>
-    )}
 {/* <FilterProd ucts /> */}
 </View>  
 
@@ -965,7 +1001,7 @@ export default function Main() {
         <Text style={styles.cityName}>{city} {subregion} {district}</Text>
         <Text style={styles.temp}>{TEMP}</Text>
           <Text style={styles.description}>{SKY}</Text>
-          <Text style={styles.message}>산책하기 좋은 날씨에요</Text>
+          <Text style={styles.message}>{advice}</Text>
           </View>
  
           
@@ -1040,9 +1076,7 @@ export default function Main() {
     
      
      {/* 날씨 공유 메세지 */}
-      {isLoading ? (
-      <Text>Loading...</Text> // 로딩 상태 표시
-      ) : (
+      
         <>
         <View style={styles.card}>
         <View style={styles.column}>
@@ -1058,7 +1092,7 @@ export default function Main() {
         </View>
         </View>
         </>
-      )}
+      
 
 
       
