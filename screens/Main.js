@@ -312,6 +312,24 @@ export function extractVilageWeather(json){
   return [weatherInfo, tmpfortime, windfortime, rainfortime, humidityfortime];
 };
 
+// 주간 최저, 최고 기온 추출
+export function extractVilageWeekWeather(json){
+  const items = json.response.body.items.item;
+  let maximumTemp = [];
+  let minimumTemp = [];
+  items.forEach((dic)=>{
+    if (dic["category"]=='TMN'){ // 최저 기온
+      minimumTemp.push(dic["fcstValue"]);
+    }
+    if (dic["category"]=='TMX'){ //최고 기온
+      maximumTemp.push(dic["fcstValue"]);
+    }
+  });
+  console.log("최저기온리스트 확인:",minimumTemp);
+  console.log("최고기온리스트 확인:",maximumTemp);
+  return [minimumTemp, maximumTemp];
+};
+
 function extractPm(grade){
   if (grade==1){
     return "좋음";
@@ -410,7 +428,8 @@ function getCurrnetWeatherUrl(latitude, longitude, apiType){
   const ny = rs.y;
   
   return [`http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=${serviceKey}&numOfRows=60&pageNo=1&base_date=${base_date}&base_time=${base_time}&nx=${nx}&ny=${ny}&dataType=json`,
-          `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${serviceKey}&numOfRows=290&pageNo=1&base_date=${base_date}&base_time=2300&nx=${nx}&ny=${ny}&dataType=json`];
+          `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${serviceKey}&numOfRows=290&pageNo=1&base_date=${base_date}&base_time=2300&nx=${nx}&ny=${ny}&dataType=json`,
+          `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${serviceKey}&numOfRows=882&pageNo=1&base_date=${base_date}&base_time=2300&nx=${nx}&ny=${ny}&dataType=json`];
 }
 
 function getCurrnetPmUrl(region){
@@ -567,6 +586,12 @@ export default function Main() {
   const [searchLatitude, setLatitude] = useState('');
   const [searchLongitude, setLongitude] = useState('');
 
+  // 주간 최저/최고 기온
+  const [tomorrowMin, setTomorrowMin] = useState();
+  const [afterTomorrowMin, setAfterTomorrowMin] = useState();
+  const [tomorrowMax, setTomorrowMax] = useState();
+  const [afterTomorrowMax, setAfterTomorrowMax] = useState();
+
   const isLoaded = useCachedResources();
 
   const navigation = useNavigation();
@@ -684,8 +709,20 @@ export default function Main() {
 
     setLowerTemp(JSON.stringify(vilageWeatherInfo.lowerTmp).replace(/\"/gi, ""));
     setUpperTemp(JSON.stringify(vilageWeatherInfo.upperTmp).replace(/\"/gi, ""));
-    
-    
+
+    // 오늘, 내일, 모레 최저/최고 기온
+    const vilageWeekUrl = getCurrnetWeatherUrl(latitude, longitude,"vilage")[2];
+    console.log("주간 예보 url",vilageWeekUrl);
+    const vilageWeekResponse = await fetch(vilageWeekUrl);
+    const vilageWeekJson = await vilageWeekResponse.json(); // 응답을 JSON 형태로 파싱
+    weekMinTempList=extractVilageWeekWeather(vilageWeekJson)[0] // 최저기온 리스트
+    weekMaxTempList=extractVilageWeekWeather(vilageWeekJson)[1] // 최고기온 리스트
+
+    setTomorrowMin(weekMinTempList[0].replace(/\"/gi, ""));
+    setAfterTomorrowMin(weekMinTempList[1].replace(/\"/gi, ""));
+    setTomorrowMax(weekMaxTempList[0].replace(/\"/gi, ""));
+    setAfterTomorrowMax(weekMaxTempList[1].replace(/\"/gi, ""));
+        
     // const pmJson = await pmResponse.json(); // 응답을 JSON 형태로 파싱
     // pmInfo=extractPm(pmJson);
     // console.log("미세먼지 : ",(pmInfo));
@@ -1159,24 +1196,24 @@ export default function Main() {
    
        <View style={styles.weekly}>
         <Text style={styles.dayOfweek}>
-            오늘
+            내일
           </Text>
         <View style={styles.hum}></View>
         <View style={styles.icon}></View>
         <View style={styles.icon}></View>
-        <View style={styles.high}></View>
-        <View style={styles.low}></View>
+        <Text style={styles.high}>{tomorrowMax}</Text>
+        <Text style={styles.low}>{tomorrowMin}</Text>
        </View>
   
        <View style={styles.weekly}>
         <Text style={styles.dayOfweek}>
-            오늘
+            모레
           </Text>
         <View style={styles.hum}></View>
         <View style={styles.icon}></View>
         <View style={styles.icon}></View>
-        <View style={styles.high}></View>
-        <View style={styles.low}></View>
+        <Text style={styles.high}>{afterTomorrowMax}</Text>
+        <Text style={styles.low}>{afterTomorrowMin}</Text>
        </View>
   
        <View style={styles.weekly}>
