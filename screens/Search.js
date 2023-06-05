@@ -46,6 +46,22 @@ const Search = ({ navigation, route }) => {
     const [sensoryData, setSensoryData]=useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const [adviceTemp, setAdviceTemp]=useState();
+    const [adviceWind, setAdviceWind]=useState();
+    const [adviceFall, setAdviceFall]=useState();
+    const [adviceSensory, setAdviceSensory]=useState();
+
+    const [gptTemp, setGptTemp]=useState();
+    const [gptSrcTemp, setGptSrcTemp]=useState();
+    const [gptWind, setGptWind]=useState();
+    const [gptSrcWind, setGptSrcWind]=useState();
+    const [gptFall, setGptFall]=useState();
+    const [gptSrcFall, setGptSrcFall]=useState();
+    const [gptSensory, setGptSensory]=useState();
+    const [gptSrcSensory, setGptSrcSensory]=useState();
+    
+
+
     const getSearchWeather = async () => {
 
         const { srcUltraSrtInfo, srcVilageInfo, srcPmlist } = route.params;
@@ -91,16 +107,22 @@ const Search = ({ navigation, route }) => {
         currentTmpForTime=extractVilageWeather(vilageJson)[1]; 
         //searchTmpForTime=extractVilageWeather(searchJson)[1];
         const currentTmpList=makeData(currentTmpForTime);
+        setGptTemp(currentTmpList);
         const searchTmpList=makeData(searchTmpForTime);
+        setGptSrcTemp(searchTmpList);
         //console.log("검색 지역 기온 : ", searchTmpForTime);
     
         // 6,9,12,15,18,21시 풍속
         currentWindForTime=extractVilageWeather(vilageJson)[2]; 
+        setGptWind(makeData(currentWindForTime));
         //searchWindForTime=extractVilageWeather(searchJson)[2];
+        setGptSrcWind(makeData(searchWindForTime));
     
         // 6,9,12,15,18,21시 강수량
         currentRainForTime=extractVilageWeather(vilageJson)[3];
+        setGptFall(makeData(currentRainForTime));
         //searchRainForTime=extractVilageWeather(searchJson)[3];
+        setGptSrcFall(makeData(searchRainForTime));
     
         // 6,9,12,15,18,21시 습도
         currentHumidityForTime=extractVilageWeather(vilageJson)[4];
@@ -109,8 +131,10 @@ const Search = ({ navigation, route }) => {
         const searchHumidityList=makeData(searchHumidityForTime);
     
         const currentSensoryData = makeSensoryData(currentTmpList,currentHumidityList);
+        setGptSensory(currentSensoryData);
         const searchSensoryData = makeSensoryData(searchTmpList,searchHumidityList);
-    
+        setGptSrcSensory(searchSensoryData);
+
         const dataForTmp = {
           labels: ["6시", "9시", "12시", "15시", "18시", "21시"],
           datasets : [
@@ -189,9 +213,64 @@ const Search = ({ navigation, route }) => {
       
       };
 
+      const getAdvice = async (content,type) => {
+        const api_key = '';
+        // const keywords = '커피';
+        const messages = [
+          { role: 'system', content: 'You are a helpful assistant.' },
+          { role: 'user', content: content },
+        ];
+        console.log({TEMP});
+        const config = {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${api_key}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            temperature: 0.5,
+            n: 1,
+            messages: messages,
+          }),
+        };
+    
+        try {
+          const response = await fetch('https://api.openai.com/v1/chat/completions', config);
+          const data = await response.json();
+          const choices = await data.choices;
+          let resultText = '';
+          choices.forEach((choice, index) => {
+            resultText += `${choice.message.content}\n`;
+          });
+          console.log(resultText);
+          switch (type){
+            case "Temp":
+              setAdviceTemp(resultText);
+              break;
+            case "Wind":
+              setAdviceWind(resultText);
+              break;
+            case "Fall":
+              setAdviceFall(resultText);
+              break;
+            case "Sensory":
+              setAdviceSensory(resultText);
+              break;
+          }
+          
+        } catch (error) {
+          console.error(error);
+        }
+      };
+
     useEffect(() => {
         getSearchWeather();
         compareWeather();
+        getAdvice('현재 위치의 시간대별 기온'+ gptTemp +'와, 검색지역의 시간대별 기온 '+gptSrcTemp+'을 비교분석 한 뒤에 재밌는 한마디 부탁해',"Temp");
+        getAdvice('현재 위치의 시간대별 풍속'+ gptWind +'와, 검색지역의 시간대별 풍속 '+gptSrcWind+'을 비교분석 한 뒤에 재밌는 한마디 부탁해',"Wind");
+        getAdvice('현재 위치의 시간대별 강수량'+ gptFall +'와, 검색지역의 시간대별 강수량 '+gptSrcFall+'을 비교분석 한 뒤에 재밌는 한마디 부탁해',"Fall");
+        getAdvice('현재 위치의 시간대별 체감온도'+ gptSensory +'와, 검색지역의 시간대별 체감온도 '+gptSrcSensory+'을 비교분석 한 뒤에 재밌는 한마디 부탁해',"Sensory");
       }, []);
 
     return (
@@ -219,6 +298,7 @@ const Search = ({ navigation, route }) => {
         )}
             <Text style={styles.temp}>{TEMP}</Text>
             <Text style={styles.description}>{SKY}</Text>
+            <Text style={styles.description}>{adviceTemp}</Text>
         </View>
         <View style={styles.day}>
         {isLoading ? (
@@ -237,6 +317,7 @@ const Search = ({ navigation, route }) => {
         )}
             <Text style={styles.temp}>{lowerTEMP}</Text>
             <Text style={styles.description}>{upperTEMP}</Text>
+            <Text style={styles.description}>{adviceWind}</Text>
         </View>
         <View style={styles.day}>
           {isLoading ? (
@@ -255,6 +336,7 @@ const Search = ({ navigation, route }) => {
           )}
           <Text style={styles.temp}>미세먼지 등급 </Text>
           <Text style={styles.description}>{pmGrade10}</Text>
+          <Text style={styles.description}>{adviceFall}</Text>
         </View>
         <View style={styles.day}>
         {isLoading ? (
@@ -271,6 +353,7 @@ const Search = ({ navigation, route }) => {
           )}
           <Text style={styles.temp}>초미세먼지 등급</Text>
           <Text style={styles.description}>{pmGrade25}</Text> 
+          <Text style={styles.description}>{adviceSensory}</Text>
         </View>
         <View style={styles.day}>
             <Text style={styles.temp}>미세먼지 농도</Text>
