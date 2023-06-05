@@ -214,7 +214,7 @@ const Search = ({ navigation, route }) => {
       };
 
       const getAdvice = async (content,type) => {
-        const api_key = '';
+        const api_key = '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';
         // const keywords = '커피';
         const messages = [
           { role: 'system', content: 'You are a helpful assistant.' },

@@ -597,6 +597,7 @@ export default function Main() {
   const navigation = useNavigation();
 
   const [advice, setAdvice]=useState();
+  const [share, setShare]=useState();
   
   // const [location, setLocation] = useState();
   // const [days, setDays]=useState([]);
@@ -934,14 +935,51 @@ export default function Main() {
   // };
 
 
-  const getAdvice = async () => {
-    const api_key = '';
+  // const getAdvice = async () => {
+  //   const api_key = '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';
+  //   // const keywords = '커피';
+  //   const messages = [
+  //     { role: 'system', content: 'You are a helpful assistant.' },
+  //     { role: 'user', content: '기온'+ TEMP +'도, 미세먼지 '+pmGrade10+'인 날씨에 대한 재밌는 한마디 부탁해' },
+  //   ];
+  //   console.log({TEMP});
+  //   const config = {
+  //     method: 'POST',
+  //     headers: {
+  //       Authorization: `Bearer ${api_key}`,
+  //       'Content-Type': 'application/json',
+  //     },
+  //     body: JSON.stringify({
+  //       model: 'gpt-3.5-turbo',
+  //       temperature: 0.5,
+  //       n: 1,
+  //       messages: messages,
+  //     }),
+  //   };
+
+  //   try {
+  //     const response = await fetch('https://api.openai.com/v1/chat/completions', config);
+  //     const data = await response.json();
+  //     const choices = data.choices;
+  //     let resultText = '';
+  //     choices.forEach((choice, index) => {
+  //       resultText += `${choice.message.content}\n`;
+  //     });
+  //     console.log(resultText);
+  //     setAdvice(resultText);
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
+
+  const getAdvice = async (content,type) => {
+    const api_key = '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';
     // const keywords = '커피';
     const messages = [
       { role: 'system', content: 'You are a helpful assistant.' },
-      { role: 'user', content: '기온'+ TEMP +'도, 미세먼지 '+pmGrade10+'인 날씨에 대한 재밌는 한마디 부탁해' },
+      { role: 'user', content: content },
     ];
-    console.log({TEMP});
+    // console.log({TEMP});
     const config = {
       method: 'POST',
       headers: {
@@ -959,24 +997,44 @@ export default function Main() {
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', config);
       const data = await response.json();
-      const choices = data.choices;
+      const choices = await data.choices;
       let resultText = '';
       choices.forEach((choice, index) => {
         resultText += `${choice.message.content}\n`;
       });
       console.log(resultText);
-      setAdvice(resultText);
+      switch (type){
+        case "current":
+          setAdvice(resultText);
+          break;
+        case "share":
+          setShare(resultText);
+          break;
+      }
+      
     } catch (error) {
       console.error(error);
     }
   };
 
-
   useEffect(() => {
     getWeather();
     // compareWeather();
-    getAdvice();
+    // 현재 날씨 조언 기능
+    getAdvice('기온'+ TEMP +'도, 미세먼지 '+pmGrade10+'인 날씨에 대한 재밌는 한마디 부탁해',"current");
+    // 공유 내용
+    getAdvice('기온'+ TEMP +'도, 미세먼지 '+pmGrade10+'인 날씨에 대한 재밌는 3문장 부탁해',"share");
   }, []);
+
+  //Test용 콘솔
+  console.log("공유 멘트 확인",share)
+
+
+  // useEffect(() => {
+  //   getWeather();
+  //   // compareWeather();
+  //   getAdvice();
+  // }, []);
 
   //export default timeTable;
   // if (!tempData) {
@@ -1216,7 +1274,7 @@ export default function Main() {
         <Text style={styles.low}>{afterTomorrowMin}</Text>
        </View>
   
-       <View style={styles.weekly}>
+       {/* <View style={styles.weekly}>
         <Text style={styles.dayOfweek}>
             오늘
           </Text>
@@ -1258,7 +1316,7 @@ export default function Main() {
         <View style={styles.icon}></View>
         <View style={styles.high}></View>
         <View style={styles.low}></View>
-       </View>
+       </View> */}
         
         </View>
         </ScrollView>
