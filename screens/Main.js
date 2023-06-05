@@ -1,7 +1,10 @@
 import * as Location from 'expo-location';
 import { StatusBar } from "expo-status-bar";
 import React, {useEffect, useState} from "react";
-import { View, Text, Dimensions, StyleSheet, ScrollView, TextInput, Button, Image } from 'react-native';
+import { 
+  View, 
+  Text, Dimensions, 
+  StyleSheet, ScrollView, TextInput, Button, Image, Share } from 'react-native';
 import {
   LineChart,
 } from "react-native-chart-kit";
@@ -312,24 +315,6 @@ export function extractVilageWeather(json){
   return [weatherInfo, tmpfortime, windfortime, rainfortime, humidityfortime];
 };
 
-// 주간 최저, 최고 기온 추출
-export function extractVilageWeekWeather(json){
-  const items = json.response.body.items.item;
-  let maximumTemp = [];
-  let minimumTemp = [];
-  items.forEach((dic)=>{
-    if (dic["category"]=='TMN'){ // 최저 기온
-      minimumTemp.push(dic["fcstValue"]);
-    }
-    if (dic["category"]=='TMX'){ //최고 기온
-      maximumTemp.push(dic["fcstValue"]);
-    }
-  });
-  console.log("최저기온리스트 확인:",minimumTemp);
-  console.log("최고기온리스트 확인:",maximumTemp);
-  return [minimumTemp, maximumTemp];
-};
-
 function extractPm(grade){
   if (grade==1){
     return "좋음";
@@ -428,8 +413,7 @@ function getCurrnetWeatherUrl(latitude, longitude, apiType){
   const ny = rs.y;
   
   return [`http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=${serviceKey}&numOfRows=60&pageNo=1&base_date=${base_date}&base_time=${base_time}&nx=${nx}&ny=${ny}&dataType=json`,
-          `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${serviceKey}&numOfRows=290&pageNo=1&base_date=${base_date}&base_time=2300&nx=${nx}&ny=${ny}&dataType=json`,
-          `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${serviceKey}&numOfRows=882&pageNo=1&base_date=${base_date}&base_time=2300&nx=${nx}&ny=${ny}&dataType=json`];
+          `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${serviceKey}&numOfRows=290&pageNo=1&base_date=${base_date}&base_time=2300&nx=${nx}&ny=${ny}&dataType=json`];
 }
 
 function getCurrnetPmUrl(region){
@@ -586,18 +570,13 @@ export default function Main() {
   const [searchLatitude, setLatitude] = useState('');
   const [searchLongitude, setLongitude] = useState('');
 
-  // 주간 최저/최고 기온
-  const [tomorrowMin, setTomorrowMin] = useState();
-  const [afterTomorrowMin, setAfterTomorrowMin] = useState();
-  const [tomorrowMax, setTomorrowMax] = useState();
-  const [afterTomorrowMax, setAfterTomorrowMax] = useState();
-
   const isLoaded = useCachedResources();
 
   const navigation = useNavigation();
 
   const [advice, setAdvice]=useState();
-  const [share, setShare]=useState();
+
+  const [shareTwo, setShareTwo] = useState();
   
   // const [location, setLocation] = useState();
   // const [days, setDays]=useState([]);
@@ -710,20 +689,8 @@ export default function Main() {
 
     setLowerTemp(JSON.stringify(vilageWeatherInfo.lowerTmp).replace(/\"/gi, ""));
     setUpperTemp(JSON.stringify(vilageWeatherInfo.upperTmp).replace(/\"/gi, ""));
-
-    // 오늘, 내일, 모레 최저/최고 기온
-    const vilageWeekUrl = getCurrnetWeatherUrl(latitude, longitude,"vilage")[2];
-    console.log("주간 예보 url",vilageWeekUrl);
-    const vilageWeekResponse = await fetch(vilageWeekUrl);
-    const vilageWeekJson = await vilageWeekResponse.json(); // 응답을 JSON 형태로 파싱
-    weekMinTempList=extractVilageWeekWeather(vilageWeekJson)[0] // 최저기온 리스트
-    weekMaxTempList=extractVilageWeekWeather(vilageWeekJson)[1] // 최고기온 리스트
-
-    setTomorrowMin(weekMinTempList[0].replace(/\"/gi, ""));
-    setAfterTomorrowMin(weekMinTempList[1].replace(/\"/gi, ""));
-    setTomorrowMax(weekMaxTempList[0].replace(/\"/gi, ""));
-    setAfterTomorrowMax(weekMaxTempList[1].replace(/\"/gi, ""));
-        
+    
+    
     // const pmJson = await pmResponse.json(); // 응답을 JSON 형태로 파싱
     // pmInfo=extractPm(pmJson);
     // console.log("미세먼지 : ",(pmInfo));
@@ -935,45 +902,11 @@ export default function Main() {
   // };
 
 
-  // const getAdvice = async () => {
-  //   const api_key = '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';
-  //   // const keywords = '커피';
-  //   const messages = [
-  //     { role: 'system', content: 'You are a helpful assistant.' },
-  //     { role: 'user', content: '기온'+ TEMP +'도, 미세먼지 '+pmGrade10+'인 날씨에 대한 재밌는 한마디 부탁해' },
-  //   ];
-  //   console.log({TEMP});
-  //   const config = {
-  //     method: 'POST',
-  //     headers: {
-  //       Authorization: `Bearer ${api_key}`,
-  //       'Content-Type': 'application/json',
-  //     },
-  //     body: JSON.stringify({
-  //       model: 'gpt-3.5-turbo',
-  //       temperature: 0.5,
-  //       n: 1,
-  //       messages: messages,
-  //     }),
-  //   };
 
-  //   try {
-  //     const response = await fetch('https://api.openai.com/v1/chat/completions', config);
-  //     const data = await response.json();
-  //     const choices = data.choices;
-  //     let resultText = '';
-  //     choices.forEach((choice, index) => {
-  //       resultText += `${choice.message.content}\n`;
-  //     });
-  //     console.log(resultText);
-  //     setAdvice(resultText);
-  //   } catch (error) {
-  //     console.error(error);
-  //   }
-  // };
 
-  const getAdvice = async (content,type) => {
-    const api_key = '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';
+   const getAdvice = async (content,type) => {
+    //gpt api_key
+    const api_key = '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';
     // const keywords = '커피';
     const messages = [
       { role: 'system', content: 'You are a helpful assistant.' },
@@ -1007,8 +940,8 @@ export default function Main() {
         case "current":
           setAdvice(resultText);
           break;
-        case "share":
-          setShare(resultText);
+        case "shareTwo":
+          setShareTwo(resultText);
           break;
       }
       
@@ -1022,30 +955,9 @@ export default function Main() {
     // compareWeather();
     // 현재 날씨 조언 기능
     getAdvice('기온'+ TEMP +'도, 미세먼지 '+pmGrade10+'인 날씨에 대한 재밌는 한마디 부탁해',"current");
-    // 공유 내용
-    getAdvice('기온'+ TEMP +'도, 미세먼지 '+pmGrade10+'인 날씨에 대한 재밌는 3문장 부탁해',"share");
+    // 공유 메시지 질문을 gpt에게 넘기기
+    getAdvice('기온'+ TEMP +'도, 미세먼지 '+pmGrade10+'인 날씨에 대한 메시지를 소중한 사람에게 보낼 거야. 메시지는 *을 사용해서 감싸줘.',"shareTwo");
   }, []);
-
-  //Test용 콘솔
-  console.log("공유 멘트 확인",share)
-
-
-  // useEffect(() => {
-  //   getWeather();
-  //   // compareWeather();
-  //   getAdvice();
-  // }, []);
-
-  //export default timeTable;
-  // if (!tempData) {
-  //   // tempData가 아직 초기화되지 않았을 경우 로딩 중 표시 등을 할 수 있습니다.
-  //   return (
-  //     <View style={styles.container}>
-  //       <Text>Loading...</Text>
-  //     </View>
-  //   );
-  // }
-
 
   return (
    
@@ -1076,19 +988,14 @@ export default function Main() {
 </View>  
 
 
-
-
 {/* 스크롤 적용구간 */}
-
     <View style={styles.weather}>
-     
       <ScrollView
         pagingEnabled={false}
         showsHorizontalScrollIndicator={false}
         horizontal ={false}
         contentContainerStyle={styles.weather}
       >
-
         {/* 현재위치 기온 & 코멘트 */}
 
           <View style={styles.row}>
@@ -1178,11 +1085,19 @@ export default function Main() {
         <Text style={styles.ment}> 좋아하는 사람에게 날씨를 공유해 보는 건 어떨까요?</Text> 
         <View style={styles.rowlable}>
         <Text style={styles.ment}> 당신의 마음이 전해질 지도 몰라요~</Text> 
-        <Image
+       
+       {/* 일단 공유 이미지 말고 버튼으로 공유 기능 생성 */}
+        {/* <Image
       style={styles.miniIcon}
       source={require('./src/assets/image/share.png')}
       resizeMode={"contain"}
-        />
+        /> */}
+        {/* 공유 버튼 누르면 gpt 멘트 공유 가능 */}
+        <Button 
+          title="공유"
+          onPress={async () => await Share.share({ message: shareTwo,})}>
+        </Button>
+          
         </View>
         </View>
         </View>
@@ -1254,27 +1169,16 @@ export default function Main() {
    
        <View style={styles.weekly}>
         <Text style={styles.dayOfweek}>
-            내일
+            오늘
           </Text>
         <View style={styles.hum}></View>
         <View style={styles.icon}></View>
         <View style={styles.icon}></View>
-        <Text style={styles.high}>{tomorrowMax}</Text>
-        <Text style={styles.low}>{tomorrowMin}</Text>
+        <View style={styles.high}></View>
+        <View style={styles.low}></View>
        </View>
   
        <View style={styles.weekly}>
-        <Text style={styles.dayOfweek}>
-            모레
-          </Text>
-        <View style={styles.hum}></View>
-        <View style={styles.icon}></View>
-        <View style={styles.icon}></View>
-        <Text style={styles.high}>{afterTomorrowMax}</Text>
-        <Text style={styles.low}>{afterTomorrowMin}</Text>
-       </View>
-  
-       {/* <View style={styles.weekly}>
         <Text style={styles.dayOfweek}>
             오늘
           </Text>
@@ -1316,7 +1220,18 @@ export default function Main() {
         <View style={styles.icon}></View>
         <View style={styles.high}></View>
         <View style={styles.low}></View>
-       </View> */}
+       </View>
+  
+       <View style={styles.weekly}>
+        <Text style={styles.dayOfweek}>
+            오늘
+          </Text>
+        <View style={styles.hum}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.icon}></View>
+        <View style={styles.high}></View>
+        <View style={styles.low}></View>
+       </View>
         
         </View>
         </ScrollView>
